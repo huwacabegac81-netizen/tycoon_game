@@ -275,11 +275,18 @@
                     } catch (e) { console.error("Save load error", e); }
                 }
                 
-                // Авто-сохранение
-                const saveInterval = setInterval(() => {
-                    localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
-                }, GAME_CONFIG.saveInterval);
-                return () => clearInterval(saveInterval);
+            // Авто-сохранение (таймер + при закрытии)
+                const saveGame = () => localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
+                
+                const saveInterval = setInterval(saveGame, GAME_CONFIG.saveInterval);
+                
+                // Сохраняем, если игрок закрывает вкладку или обновляет страницу
+                window.addEventListener('beforeunload', saveGame);
+
+                return () => {
+                    clearInterval(saveInterval);
+                    window.removeEventListener('beforeunload', saveGame);
+                };
             }, []);
 
             // --- ИГРОВОЙ ЦИКЛ (СЕРДЦЕ ИГРЫ) ---
@@ -643,6 +650,7 @@
     </script>
 </body>
 </html>
+
 
 
 
