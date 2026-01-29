@@ -34,7 +34,7 @@
             overscroll-behavior: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #111827; /* Темный фон сразу, чтобы не слепило белым */
+            background-color: #111827;
         }
         
         /* Анимации */
@@ -54,7 +54,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Импортируем хуки из React (инструменты для управления памятью игры)
+        // Импортируем хуки из React
         const { useState, useEffect, useRef, useCallback } = React;
 
         // =================================================================================================
@@ -63,22 +63,20 @@
 
         const GAME_CONFIG = {
             tickSpeed: 1000,   // Скорость игры в мс (1000 = 1 секунда)
-            saveInterval: 10000 // Как часто сохранять игру (10000 = 10 секунд)
+            saveInterval: 5000 // Сохраняем каждые 5 секунд (чуть чаще)
         };
 
-        // Начальное состояние для нового игрока
+        // Начальное состояние
         const INITIAL_STATE = {
             money: 0,
             gameTime: 0,
             queue: 0,
             hall: [],
-            upgrades: { /* Сюда автоматически добавятся ключи из UPGRADES_CONFIG */ }
+            upgrades: { /* Заполнится автоматически */ }
         };
 
         // СПИСОК ВСЕХ ТОВАРОВ
-        // effect: формула усиления. (lvl) => lvl * 0.1 значит "Уровень * 0.1"
         const UPGRADES_CONFIG = {
-            // --- Улучшения ---
             click_energy:     { id: 'click_energy', category: 'click', name: 'Энергетики', basePrice: 10, desc: '+$1 к клику', effect: lvl => lvl * 1 },
             marketing_flyers: { id: 'marketing_flyers', category: 'marketing', name: 'Нанять промоутеров', basePrice: 20, desc: '+1 гость в час', effect: lvl => lvl * 1 },
             club_vent:        { id: 'club_vent', category: 'club', name: 'Вентилятор', basePrice: 30, desc: '+1 сек в зале', effect: lvl => lvl * 1 },
@@ -111,14 +109,14 @@
             club_vip:         { id: 'club_vip', category: 'club', name: 'Вип ложа', basePrice: 10000, desc: '+$1 к ставке', effect: lvl => lvl * 1 },
         };
 
-        // Заполняем начальные нули для всех апгрейдов
+        // Заполняем начальные нули
         Object.keys(UPGRADES_CONFIG).forEach(key => INITIAL_STATE.upgrades[key] = 0);
 
         // =================================================================================================
-        // БЛОК 2: ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ДВИЖОК)
+        // БЛОК 2: ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
         // =================================================================================================
 
-        // 1. Звуковой движок (безопасный, не ломает игру)
+        // 1. Звук
         const audioCtx = { current: null };
         const playSound = (type) => {
             try {
@@ -132,7 +130,6 @@
                 gain.connect(ctx.destination);
 
                 const now = ctx.currentTime;
-                // Настройки звуков для разных действий
                 if (type === 'click') {
                     osc.frequency.setValueAtTime(800, now);
                     osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
@@ -152,10 +149,10 @@
                     gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
                     osc.start(now); osc.stop(now + 0.1);
                 }
-            } catch (e) { /* Игнорируем ошибки звука */ }
+            } catch (e) { /* tishina */ }
         };
 
-        // 2. Вибрация (Haptic Feedback)
+        // 2. Вибрация
         const triggerHaptic = (style = 'medium') => {
             if (!navigator.vibrate) return;
             if (style === 'light') navigator.vibrate(5);
@@ -163,21 +160,20 @@
             if (style === 'success') navigator.vibrate([10, 30, 10]);
         };
 
-        // 3. Форматирование денег (1 000 000 вместо 1000000)
+        // 3. Форматирование
         const formatMoney = (val) => Math.floor(val).toLocaleString('en-US').replace(/,/g, ' ');
         const formatTime = (h) => `${Math.floor(h/24)}д ${h%24}ч`;
 
-        // 4. Расчет цены товара: База * 1.4 ^ Уровень
+        // 4. Цена
         const getPrice = (key, currentLevel) => {
             const base = UPGRADES_CONFIG[key].basePrice;
             return Math.floor(base * Math.pow(1.4, currentLevel));
         };
 
         // =================================================================================================
-        // БЛОК 3: ВИЗУАЛЬНЫЕ КОМПОНЕНТЫ (ИКОНКИ И КНОПКИ)
+        // БЛОК 3: ИКОНКИ И КОМПОНЕНТЫ
         // =================================================================================================
 
-        // Набор иконок (SVG)
         const Icons = {
             User: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
             Dollar: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
@@ -192,15 +188,12 @@
             ChevronDown: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         };
 
-        // Компонент: Карточка товара в магазине
         const UpgradeItem = ({ config, level, money, onBuy }) => {
             const cost = getPrice(config.id, level);
             const canBuy = money >= cost;
             
-            // Выбор иконки и цвета в зависимости от категории
             let IconComponent = Icons.Star;
             let colorClass = "text-purple-500";
-            
             if (config.category === 'click') { IconComponent = Icons.Play; colorClass = "text-yellow-500"; }
             if (config.category === 'marketing') { IconComponent = Icons.Briefcase; colorClass = "text-blue-500"; }
             if (config.category === 'staff') { IconComponent = Icons.PlusUser; colorClass = "text-green-500"; }
@@ -230,29 +223,24 @@
         };
 
         // =================================================================================================
-        // БЛОК 4: ГЛАВНАЯ ИГРА (ЛОГИКА)
+        // БЛОК 4: ГЛАВНАЯ ИГРА
         // =================================================================================================
 
         function BetBoomTycoonMobile() {
-            // Состояния (State)
             const [state, setState] = useState(INITIAL_STATE);
             const [isGameStarted, setIsGameStarted] = useState(false);
-            const [isShopExpanded, setShopExpanded] = useState(false); // Открыт ли магазин
-            const [floats, setFloats] = useState([]); // Всплывающие цифры
+            const [isShopExpanded, setShopExpanded] = useState(false);
+            const [floats, setFloats] = useState([]);
             
-            // Refs (для хранения данных без перерисовки экрана)
             const stateRef = useRef(state);
             const spawnAccumulator = useRef(0);
             const clickAnimRef = useRef(null);
             
-            // Синхронизация ref со стейтом (нужно для таймера)
             useEffect(() => { stateRef.current = state; }, [state]);
 
-            // --- КАЛЬКУЛЯТОРЫ БОНУСОВ ---
-            // Считают текущие показатели на основе купленных улучшений
+            // Расчеты
             const calcStats = useCallback((ups) => {
                 const check = (id) => UPGRADES_CONFIG[id]?.effect(ups[id]) || 0;
-                
                 return {
                     maxQueue: 5 + check('queue_barrier') + check('queue_sign') + check('queue_shade'),
                     maxHall: 5 + check('club_expand') + check('club_floor2'),
@@ -269,27 +257,33 @@
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
-                        // Объединяем старые сохранения с новыми конфигами (чтобы не ломалось при обновлениях)
                         const mergedUpgrades = { ...INITIAL_STATE.upgrades, ...parsed.upgrades };
                         setState(prev => ({ ...prev, ...parsed, upgrades: mergedUpgrades }));
                     } catch (e) { console.error("Save load error", e); }
                 }
                 
-            // Авто-сохранение (таймер + при закрытии)
-                const saveGame = () => localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
-                
+                // Функция сохранения
+                const saveGame = () => {
+                    try {
+                        localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
+                    } catch (e) { console.error("Save error", e); }
+                };
+
+                // Таймер
                 const saveInterval = setInterval(saveGame, GAME_CONFIG.saveInterval);
                 
-                // Сохраняем, если игрок закрывает вкладку или обновляет страницу
+                // Сохранение при выходе
                 window.addEventListener('beforeunload', saveGame);
+                window.addEventListener('unload', saveGame); // Для мобилок
 
                 return () => {
                     clearInterval(saveInterval);
                     window.removeEventListener('beforeunload', saveGame);
+                    window.removeEventListener('unload', saveGame);
                 };
             }, []);
 
-            // --- ИГРОВОЙ ЦИКЛ (СЕРДЦЕ ИГРЫ) ---
+            // --- ИГРОВОЙ ЦИКЛ ---
             useEffect(() => {
                 const loop = setInterval(() => {
                     const current = stateRef.current;
@@ -298,7 +292,7 @@
                     let { queue, hall, money, gameTime } = current;
                     let moneyDelta = 0;
 
-                    // 1. СПАВН ЛЮДЕЙ (ПРИХОД)
+                    // Спавн
                     if (queue < stats.maxQueue) {
                         spawnAccumulator.current += stats.spawnRate;
                         if (spawnAccumulator.current >= 1) {
@@ -308,10 +302,9 @@
                         }
                     }
 
-                    // 2. ОБРАБОТКА ЗАЛА (СТАВКИ)
+                    // Обработка
                     const activeGuests = [];
                     hall.forEach(guest => {
-                        // Шанс проигрыша 20%
                         const isLoss = Math.random() < 0.2; 
                         const amount = stats.betAmount;
 
@@ -328,7 +321,7 @@
                         }
                     });
 
-                    // 3. АВТО-МЕНЕДЖЕР
+                    // Менеджер
                     const managerLvl = current.upgrades.staff_manager;
                     if (managerLvl > 0) {
                         const freeSlots = stats.maxHall - activeGuests.length;
@@ -354,8 +347,6 @@
                 return () => clearInterval(loop);
             }, [calcStats]);
 
-            // --- ДЕЙСТВИЯ ИГРОКА ---
-
             const spawnFloat = (text, type, xPercent = null) => {
                 const id = Date.now() + Math.random();
                 const x = xPercent !== null ? xPercent : 20 + Math.random() * 60;
@@ -378,14 +369,11 @@
 
             const handleClick = () => {
                 const stats = calcStats(state.upgrades);
-                
-                // Анимация кнопки
                 if (clickAnimRef.current) {
                     clickAnimRef.current.classList.remove('animate-click');
-                    void clickAnimRef.current.offsetWidth; // Магия для перезапуска CSS анимации
+                    void clickAnimRef.current.offsetWidth;
                     clickAnimRef.current.classList.add('animate-click');
                 }
-
                 setState(prev => ({ ...prev, money: prev.money + stats.clickVal }));
                 spawnFloat(`+$${stats.clickVal.toFixed(1)}`, 'click', 50);
                 triggerHaptic('medium');
@@ -406,89 +394,35 @@
                 }
             };
 
-            // Предварительный расчет статистики для рендера
             const stats = calcStats(state.upgrades);
-            // РАСЧЕТ ДОХОДА В СЕКУНДУ (IPS)
-            // Формула: Гости * Ставка * 0.4 
             const incomePerSec = state.hall.length * stats.betAmount * 0.4;
-            // =============================================================================================
-            // СТАРТОВОЕ МЕНЮ 
-            // =============================================================================================
+
+            // СТАРТОВОЕ МЕНЮ
             if (!isGameStarted) {
                 return (
                     <div className="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
-                        {/* Логотип / Заголовок */}
                         <div className="mb-8 animate-popIn">
-                            <h1 className="text-4xl font-black text-yellow-400 uppercase tracking-tighter drop-shadow-lg">
-                                BetBoom
-                            </h1>
-                            <span className="text-2xl font-bold text-white tracking-widest uppercase bg-red-600 px-2 transform -skew-x-12 inline-block">
-                                Tycoon
-                            </span>
+                            <h1 className="text-4xl font-black text-yellow-400 uppercase tracking-tighter drop-shadow-lg">BetBoom</h1>
+                            <span className="text-2xl font-bold text-white tracking-widest uppercase bg-red-600 px-2 transform -skew-x-12 inline-block">Tycoon</span>
                         </div>
-
-                        {/* Приветственный текст */}
                         <div className="max-w-md space-y-4 mb-8">
-                            <p className="text-white text-lg font-bold leading-snug">
-                                Поздравляю, вы стали счастливым владельцем клуба BetBoom!
-                            </p>
-                            <p className="text-gray-400 text-sm">
-                                У нас открыто уже более 347 клубов по всей России. 
-                                <br/>Теперь и твой черед стать частью лучшей сети клубов!
-                            </p>
+                            <p className="text-white text-lg font-bold leading-snug">Поздравляю, вы стали владельцем клуба!</p>
+                            <p className="text-gray-400 text-sm">Принимай гостей, делай выручку и улучшай заведение.</p>
                         </div>
-
-                        {/* Список задач (Карточка с подсказками) */}
-                        <div className="w-full max-w-sm bg-gray-800/50 border border-gray-700 rounded-xl p-5 mb-8 text-left space-y-4 shadow-xl backdrop-blur-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-purple-900/50 rounded-lg text-purple-400">
-                                    <Icons.Star size={24} />
-                                </div>
-                                <div className="text-sm text-gray-300">
-                                    <span className="text-white font-bold block">Улучшай клуб</span>
-                                    Покупай новую мебель и оборудование
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="p-2 bg-blue-900/50 rounded-lg text-blue-400">
-                                    <Icons.Briefcase size={24} />
-                                </div>
-                                <div className="text-sm text-gray-300">
-                                    <span className="text-white font-bold block">Привлекай людей</span>
-                                    Увеличивай трафик за счёт маркетинга
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Кнопка Старта */}
-                        <button 
-                            onClick={() => {
-                                setIsGameStarted(true);
-                                playSound('buy'); // Звук при старте
-                                triggerHaptic('success');
-                            }}
-                            className="w-full max-w-xs py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.5)] uppercase tracking-wider active:scale-95 transition-all animate-popIn"
-                        >
+                        <button onClick={() => { setIsGameStarted(true); playSound('buy'); triggerHaptic('success'); }}
+                            className="w-full max-w-xs py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-xl rounded-xl shadow-lg uppercase tracking-wider active:scale-95 transition-all animate-popIn">
                             Открыть клуб
                         </button>
-                        
-                        <div className="mt-6 text-[10px] text-gray-600 font-mono">
-                            v1.0 • Clean Release
-                        </div>
                     </div>
                 );
             }
-            // =============================================================================================
-            // БЛОК 5: ОТРИСОВКА ИНТЕРФЕЙСА (HTML)
-            // =============================================================================================
+
+            // ИНТЕРФЕЙС
             return (
                 <div className="flex flex-col h-[100dvh] w-full">
-                    
-                 {/* --- ВЕРХНЯЯ ПАНЕЛЬ --- */}
+                    {/* Верхняя панель */}
                     <div className="flex-none bg-gray-800 p-3 border-b border-gray-700 shadow-xl z-20">
                         <div className="flex justify-between items-center">
-                            
-                            {/* ЛЕВЫЙ БЛОК: Баланс + Доход в секунду */}
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Баланс</span>
                                 <div className="flex items-end gap-2">
@@ -500,8 +434,6 @@
                                     </div>
                                 </div>
                             </div>
-
-                            {/* ПРАВЫЙ БЛОК: Время  */}
                             <div className="flex flex-col items-end">
                                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Время</span>
                                 <div className="text-white text-lg font-bold leading-none flex items-center gap-1">
@@ -509,38 +441,29 @@
                                 </div>
                             </div>
                         </div>
-
-                    {/* НИЖНИЙ БЛОК: Прогресс бар */}
                         <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase">
                             <span>Гости: {state.hall.length} / {stats.maxHall}</span>
                             <span>Очередь: {state.queue} / {stats.maxQueue}</span>
                         </div>
                         <div className="w-full h-1.5 bg-gray-700 rounded-full mt-1 overflow-hidden">
-                           <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300" 
-                                style={{ width: `${(state.hall.length / stats.maxHall) * 100}%` }} />
+                           <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300" style={{ width: `${(state.hall.length / stats.maxHall) * 100}%` }} />
                         </div>
+                    </div>
 
-                    {/* --- ИГРОВАЯ ЗОНА (Улица + Зал) --- */}
+                    {/* Игровая зона */}
                     <div className={`relative flex flex-col bg-gray-900 transition-all duration-300 ${isShopExpanded ? 'flex-[0]' : 'flex-1 min-h-0'}`}>
-                        
-                        {/* Слой всплывающих цифр */}
                         <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
                             {floats.map(f => (
-                                <div key={f.id} 
-                                     className={`absolute font-black text-xl drop-shadow-md ${
-                                         f.type === 'good' ? 'text-green-400' : 
-                                         f.type === 'bad' ? 'text-red-500' : 'text-yellow-400 text-3xl'
-                                     }`} 
+                                <div key={f.id} className={`absolute font-black text-xl drop-shadow-md ${f.type === 'good' ? 'text-green-400' : f.type === 'bad' ? 'text-red-500' : 'text-yellow-400 text-3xl'}`} 
                                      style={{ left: `${f.x}%`, top: '30%', animation: 'floatUp 0.8s ease-out forwards' }}>
                                     {f.text}
                                 </div>
                             ))}
                         </div>
 
-                        {/* УЛИЦА (Очередь) - Компактная версия */}
+                        {/* Очередь */}
                         <div className="bg-gray-800/40 border-b border-gray-700/50 relative flex flex-col justify-center items-center py-2 shrink-0">
                            <div className="absolute top-1 left-2 text-[10px] text-gray-600 font-bold uppercase">Очередь</div>
-                           
                            <div className="flex items-center justify-center gap-[-5px] h-10 mb-1 w-full overflow-hidden">
                              {Array.from({ length: Math.min(15, state.queue) }).map((_, i) => (
                                <div key={i} className="animate-popIn -ml-2 first:ml-0 relative z-0">
@@ -551,16 +474,13 @@
                              ))}
                              {state.queue > 15 && <span className="ml-2 text-gray-500 font-bold text-xs">+{state.queue - 15}</span>}
                            </div>
-
-                           <button onClick={handleManualMove} 
-                                   disabled={state.queue === 0 || state.hall.length >= stats.maxHall} 
-                                   className={`px-4 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border transition-all active:scale-95 
-                                   ${state.queue > 0 && state.hall.length < stats.maxHall ? 'bg-green-600/20 border-green-500 text-green-400' : 'bg-transparent border-gray-700 text-gray-600'}`}>
+                           <button onClick={handleManualMove} disabled={state.queue === 0 || state.hall.length >= stats.maxHall} 
+                                   className={`px-4 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border transition-all active:scale-95 ${state.queue > 0 && state.hall.length < stats.maxHall ? 'bg-green-600/20 border-green-500 text-green-400' : 'bg-transparent border-gray-700 text-gray-600'}`}>
                              Запустить
                            </button>
                         </div>
 
-                        {/* ЗАЛ (Гости) - Кружочки с таймерами */}
+                        {/* Зал */}
                         <div className="flex-1 p-3 overflow-y-auto bg-gray-900 content-start">
                            <div className="grid grid-cols-5 gap-3 pb-4">
                              {state.hall.map((guest) => {
@@ -568,17 +488,12 @@
                                  const radius = 18;
                                  const circumference = 2 * Math.PI * radius;
                                  const offset = circumference - (progress * circumference);
-                                 
                                  return (
                                    <div key={guest.id} className="relative flex flex-col items-center justify-center animate-popIn">
                                      <div className="relative w-12 h-12 flex items-center justify-center">
                                          <svg className="absolute inset-0 w-full h-full -rotate-90">
                                              <circle cx="24" cy="24" r={radius} stroke="#374151" strokeWidth="3" fill="transparent" />
-                                             <circle cx="24" cy="24" r={radius} stroke="#a855f7" strokeWidth="3" fill="transparent" 
-                                                     strokeDasharray={circumference} 
-                                                     strokeDashoffset={offset} 
-                                                     strokeLinecap="round"
-                                                     className="transition-all duration-1000 ease-linear" />
+                                             <circle cx="24" cy="24" r={radius} stroke="#a855f7" strokeWidth="3" fill="transparent" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-1000 ease-linear" />
                                          </svg>
                                          <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10">
                                             <Icons.User size={16} className="text-gray-200" />
@@ -587,64 +502,37 @@
                                    </div>
                                  );
                              })}
-                             {/* Пустые места */}
-                             {Array.from({ length: Math.max(0, stats.maxHall - state.hall.length) }).map((_, i) => (
-                               <div key={`ph-${i}`} className="w-12 h-12 flex items-center justify-center opacity-20">
-                                 <div className="w-2 h-2 rounded-full bg-gray-600" />
-                               </div>
-                             ))}
                            </div>
                         </div>
                     </div>
-            {/* --- НИЖНЯЯ ПАНЕЛЬ (Умный магазин) --- */}
-                    <div className={`flex-none bg-gray-800 border-t border-gray-700 flex flex-col transition-all duration-300 ease-in-out z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] 
-                        ${isShopExpanded ? 'fixed bottom-0 left-0 right-0 h-[85dvh] rounded-t-3xl' : 'h-[42dvh] relative'}`}>
-                        
-                        {/* КНОПКА СТАВКИ (Скрывается при открытом магазине) */}
+
+                    {/* Магазин и Кнопка */}
+                    <div className={`flex-none bg-gray-800 border-t border-gray-700 flex flex-col transition-all duration-300 ease-in-out z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] ${isShopExpanded ? 'fixed bottom-0 left-0 right-0 h-[85dvh] rounded-t-3xl' : 'h-[42dvh] relative'}`}>
                         {!isShopExpanded && (
                             <div className="p-3 bg-gray-800 z-10 shadow-lg">
-                              <button ref={clickAnimRef} onClick={handleClick} 
-                                      className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center gap-3 text-white font-black text-xl uppercase tracking-wider shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-[4px] active:shadow-none transition-all touch-manipulation group">
+                              <button ref={clickAnimRef} onClick={handleClick} className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center gap-3 text-white font-black text-xl uppercase tracking-wider shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-[4px] active:shadow-none transition-all touch-manipulation group">
                                 <Icons.Trend size={24} className="group-active:scale-110 transition-transform" /> Сделать ставку
                               </button>
                             </div>
                         )}
 
-                        {/* МАГАЗИН */}
                         <div className="flex-1 flex flex-col min-h-0 bg-gray-900">
-                          {/* Заголовок магазина + Кнопка развернуть */}
-                          <div 
-                            onClick={() => setShopExpanded(!isShopExpanded)}
-                            className="flex items-center justify-between px-4 py-3 bg-gray-800 cursor-pointer border-b border-gray-700 active:bg-gray-700 transition-colors"
-                          >
-                              <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                                  Магазин улучшений
-                              </div>
-                              <div className="text-gray-400">
-                                  {isShopExpanded ? <Icons.ChevronDown size={20}/> : <Icons.ChevronUp size={20}/>}
-                              </div>
+                          <div onClick={() => setShopExpanded(!isShopExpanded)} className="flex items-center justify-between px-4 py-3 bg-gray-800 cursor-pointer border-b border-gray-700 active:bg-gray-700 transition-colors">
+                              <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Магазин улучшений</div>
+                              <div className="text-gray-400">{isShopExpanded ? <Icons.ChevronDown size={20}/> : <Icons.ChevronUp size={20}/>}</div>
                           </div>
-
-                          {/* Список товаров */}
                           <div className="flex-1 overflow-y-auto px-3 py-2 pb-safe space-y-2">
                             {Object.values(UPGRADES_CONFIG).map((u) => (
-                                <UpgradeItem 
-                                    key={u.id} 
-                                    config={u} 
-                                    level={state.upgrades[u.id]} 
-                                    money={state.money} 
-                                    onBuy={handleBuy} 
-                                />
+                                <UpgradeItem key={u.id} config={u} level={state.upgrades[u.id]} money={state.money} onBuy={handleBuy} />
                             ))}
                             <div className="h-10"></div>
                           </div>
                         </div>
                     </div>
-                </div> 
-            ); 
-        } 
+                </div>
+            );
+        }
 
-        // Запуск React приложения
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<BetBoomTycoonMobile />);
     </script>
