@@ -3,233 +3,503 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BetBoom Tycoon</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>BetBoom Tycoon Extended</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
         body {
-            background-color: #111; /* Темный фон */
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden; /* Чтобы не скроллилось все окно */
-            touch-action: manipulation; /* Улучшает реакцию на тапы */
-        }
-
-        /* Верхняя панель */
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-
-        h1 {
-            color: #ff0000; /* Фирменный красный */
-            margin: 0;
-            font-size: 24px;
-            text-transform: uppercase;
-            font-weight: 900;
-        }
-
-        .balance-container {
-            font-size: 32px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .income-info {
-            font-size: 14px;
-            color: #888;
-            margin-top: 5px;
-        }
-
-        /* Главная кнопка */
-        .click-area {
-            flex-grow: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-        }
-
-        #click-btn {
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, #ff0000 0%, #990000 100%);
-            border-radius: 50%;
-            border: 4px solid #fff;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            transition: transform 0.1s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
             user-select: none;
-            -webkit-tap-highlight-color: transparent; /* Убирает синий квадрат при клике */
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+            overscroll-behavior: none;
         }
-
-        #click-btn:active {
-            transform: scale(0.95);
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-60px) scale(1.1); opacity: 0; }
         }
-
-        /* Магазин */
-        .shop {
-            width: 100%;
-            height: 35%;
-            background-color: #222;
-            border-radius: 15px 15px 0 0;
-            padding: 15px;
-            box-sizing: border-box;
-            overflow-y: auto;
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
         }
-
-        .shop-title {
-            font-size: 18px;
-            margin-bottom: 10px;
-            color: #ccc;
-        }
-
-        .upgrade-item {
-            background-color: #333;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .upgrade-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .upgrade-info div:first-child {
-            font-weight: bold;
-        }
-        .upgrade-info div:last-child {
-            font-size: 12px;
-            color: #aaa;
-        }
-
-        .upgrade-cost {
-            color: #ff0000;
-            font-weight: bold;
-        }
+        .animate-popIn { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .animate-click { transform: scale(0.95); }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        
+        /* Скроллбар для красоты */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-gray-100 font-sans h-[100dvh] overflow-hidden w-full">
 
-    <div class="header">
-        <h1>BB Tycoon</h1>
-        <div class="balance-container"><span id="balance">0</span> ₽</div>
-        <div class="income-info">Прибыль: <span id="passive">0</span> ₽/сек</div>
-    </div>
+    <div id="root"></div>
 
-    <div class="click-area">
-        <div id="click-btn">ПРИНЯТЬ<br>СТАВКУ</div>
-    </div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
 
-    <div class="shop">
-        <div class="shop-title">Улучшения клуба</div>
-        <div id="upgrades-list"></div>
-    </div>
-
-    <script>
-        // Инициализация Telegram WebApp
-        let tg = window.Telegram.WebApp;
-        tg.expand(); // Раскрыть на весь экран
+        // --- АУДИО ДВИЖОК (Без внешних файлов) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Переменные игры
-        let balance = 0;
-        let profitPerSecond = 0;
-        let clickValue = 100; // Ставка за клик
+        const playSound = (type) => {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
 
-        // Список улучшений (как мы обсуждали: диваны, тв, бар)
-        const upgrades = [
-            { id: 1, name: "Удобный диван", cost: 1500, profit: 50 },
-            { id: 2, name: "Плазма 4K", cost: 5000, profit: 200 },
-            { id: 3, name: "Пивной кран", cost: 15000, profit: 700 },
-            { id: 4, name: "VIP комната", cost: 50000, profit: 2500 }
-        ];
+            if (type === 'click') {
+                // Короткий клик (как монетка)
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'buy') {
+                // Звук покупки (Ка-чинг)
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'enter') {
+                // Тихий звук входа
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            }
+        };
 
-        // Элементы интерфейса
-        const balanceEl = document.getElementById('balance');
-        const passiveEl = document.getElementById('passive');
-        const upgradesListEl = document.getElementById('upgrades-list');
-        const clickBtn = document.getElementById('click-btn');
+        const triggerHaptic = (style = 'medium') => {
+            if (navigator.vibrate) {
+                if (style === 'light') navigator.vibrate(5);
+                if (style === 'medium') navigator.vibrate(10);
+                if (style === 'heavy') navigator.vibrate([20]);
+                if (style === 'success') navigator.vibrate([10, 30, 10]);
+            }
+        };
 
-        // Клик по кнопке
-        clickBtn.addEventListener('click', () => {
-            balance += clickValue;
-            updateUI();
-            
-            // Вибрация телефона (Haptic Feedback) - фишка Телеграма
-            tg.HapticFeedback.impactOccurred('light');
-        });
+        // --- ИКОНКИ ---
+        const IconUser = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+        const IconDollar = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+        const IconClock = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+        const IconCheck = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>;
+        const IconTrend = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
+        
+        const IconPlay = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+        const IconStar = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+        const IconBriefcase = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
+        const IconPlusUser = ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>;
 
-        // Покупка улучшений
-        function buyUpgrade(upgrade) {
-            if (balance >= upgrade.cost) {
-                balance -= upgrade.cost;
-                profitPerSecond += upgrade.profit;
-                upgrade.cost = Math.floor(upgrade.cost * 1.3); // Удорожание на 30%
+        // --- КОНФИГУРАЦИЯ ---
+        const GAME_TICK_MS = 1000;
+        const SAVE_INTERVAL_MS = 10000;
+
+        const INITIAL_STATE = {
+            money: 0,
+            gameTime: 0,
+            queue: 0,
+            hall: [],
+            upgrades: {
+                // NEW EARLY GAME (10 шт)
+                click_energy: 0, marketing_flyers: 0, club_vent: 0, queue_sign: 0,
+                bet_snacks: 0, click_keyboard: 0, club_chairs: 0, marketing_spam: 0,
+                bet_drinks: 0, queue_shade: 0,
                 
-                tg.HapticFeedback.notificationOccurred('success'); // Вибрация успеха
-                renderShop();
-                updateUI();
-            } else {
-                tg.HapticFeedback.notificationOccurred('error'); // Вибрация ошибки
+                // MID GAME
+                click_crm: 0, club_repair: 0, club_expand: 0, club_vip: 0,
+                marketing_ads: 0, marketing_ambassador: 0, marketing_sponsor: 0,
+                staff_manager: 0, staff_vip_manager: 0, staff_director: 0,
+                
+                // LATE GAME
+                click_gold: 0, click_crypto: 0,
+                queue_barrier: 0,
+                club_sofa: 0, club_karaoke: 0, club_floor2: 0,
+                bet_facecontrol: 0, bet_bar: 0,
+                marketing_smm: 0, marketing_tv: 0
             }
-        }
+        };
 
-        // Отрисовка магазина
-        function renderShop() {
-            upgradesListEl.innerHTML = '';
-            upgrades.forEach(u => {
-                const div = document.createElement('div');
-                div.className = `upgrade-item ${balance < u.cost ? 'disabled' : ''}`;
-                div.innerHTML = `
-                    <div class="upgrade-info">
-                        <div>${u.name}</div>
-                        <div>+${u.profit} ₽/сек</div>
+        // Сортировка по базовой цене (от дешевых к дорогим)
+        const UPGRADES_CONFIG = {
+            // --- TIER 1: START ($15 - $80) ---
+            click_energy: { id: 'click_energy', category: 'Клик', name: 'Энергетик', basePrice: 15, desc: '+$0.1 к клику', effect: (lvl) => lvl * 0.1 },
+            marketing_flyers: { id: 'marketing_flyers', category: 'Маркетинг', name: 'Листовки', basePrice: 25, desc: '+0.1 гостя/час', effect: (lvl) => lvl * 0.1 },
+            club_vent: { id: 'club_vent', category: 'Клуб', name: 'Вентилятор', basePrice: 30, desc: '+0.1 сек в зале', effect: (lvl) => lvl * 0.1 },
+            queue_sign: { id: 'queue_sign', category: 'Клуб', name: 'Вывеска', basePrice: 40, desc: '+1 место на улице', effect: (lvl) => lvl * 1 },
+            bet_snacks: { id: 'bet_snacks', category: 'Клуб', name: 'Орешки', basePrice: 50, desc: '+$0.2 к ставке', effect: (lvl) => lvl * 0.2 },
+            click_keyboard: { id: 'click_keyboard', category: 'Клик', name: 'RGB Мышка', basePrice: 75, desc: '+$0.2 к клику', effect: (lvl) => lvl * 0.2 },
+            club_chairs: { id: 'club_chairs', category: 'Клуб', name: 'Табуретки', basePrice: 80, desc: '+0.2 сек в зале', effect: (lvl) => lvl * 0.2 },
+
+            // --- TIER 2: BASIC ($100 - $250) ---
+            click_crm: { id: 'click_crm', category: 'Клик', name: 'CRM Система', basePrice: 100, desc: '+$0.1 к клику', effect: (lvl) => lvl * 0.1 },
+            marketing_ads: { id: 'marketing_ads', category: 'Маркетинг', name: 'Реклама', basePrice: 100, desc: '+0.1 гостя/час', effect: (lvl) => lvl * 0.1 },
+            club_repair: { id: 'club_repair', category: 'Клуб', name: 'Ремонт', basePrice: 100, desc: '+0.1 сек в зале', effect: (lvl) => lvl * 0.1 },
+            marketing_spam: { id: 'marketing_spam', category: 'Маркетинг', name: 'Спам в чатах', basePrice: 120, desc: '+0.2 гостя/час', effect: (lvl) => lvl * 0.2 },
+            bet_drinks: { id: 'bet_drinks', category: 'Клуб', name: 'Лимонад', basePrice: 150, desc: '+$0.3 к ставке', effect: (lvl) => lvl * 0.3 },
+            staff_manager: { id: 'staff_manager', category: 'Персонал', name: 'Менеджер', basePrice: 200, desc: 'Авто-вход (1/сек)', effect: (lvl) => lvl * 1 },
+            queue_shade: { id: 'queue_shade', category: 'Клуб', name: 'Тент', basePrice: 250, desc: '+2 места на улице', effect: (lvl) => lvl * 2 },
+
+            // --- TIER 3: PRO ($500 - $1500) ---
+            queue_barrier: { id: 'queue_barrier', category: 'Клуб', name: 'Ограждение', basePrice: 500, desc: '+2 места на улице', effect: (lvl) => lvl * 2 },
+            marketing_smm: { id: 'marketing_smm', category: 'Маркетинг', name: 'SMM Отдел', basePrice: 600, desc: '+1 гостя/час', effect: (lvl) => lvl * 1 },
+            club_expand: { id: 'club_expand', category: 'Клуб', name: 'Расширение', basePrice: 1000, desc: '+2 места', effect: (lvl) => lvl * 2 },
+            staff_vip_manager: { id: 'staff_vip_manager', category: 'Персонал', name: 'Вип менеджер', basePrice: 1000, desc: '+$1 к ставке', effect: (lvl) => lvl * 1 },
+            marketing_ambassador: { id: 'marketing_ambassador', category: 'Маркетинг', name: 'Амбассадор', basePrice: 1000, desc: '+1 гостя/час', effect: (lvl) => lvl * 1 },
+            club_sofa: { id: 'club_sofa', category: 'Клуб', name: 'Мягкие диваны', basePrice: 1200, desc: '+1 сек в зале', effect: (lvl) => lvl * 1 },
+            click_gold: { id: 'click_gold', category: 'Клик', name: 'Золотой палец', basePrice: 1500, desc: '+$2 к клику', effect: (lvl) => lvl * 2 },
+
+            // --- TIER 4: TYCOON ($2000+) ---
+            bet_facecontrol: { id: 'bet_facecontrol', category: 'Клуб', name: 'Фейс-контроль', basePrice: 2000, desc: '+$2 к ставке', effect: (lvl) => lvl * 2 },
+            club_karaoke: { id: 'club_karaoke', category: 'Клуб', name: 'Караоке', basePrice: 3500, desc: '+2 сек в зале', effect: (lvl) => lvl * 2 },
+            marketing_tv: { id: 'marketing_tv', category: 'Маркетинг', name: 'ТВ Ролик', basePrice: 4000, desc: '+3 гостя/час', effect: (lvl) => lvl * 3 },
+            bet_bar: { id: 'bet_bar', category: 'Клуб', name: 'Премиум Бар', basePrice: 5000, desc: '+$5 к ставке', effect: (lvl) => lvl * 5 },
+            click_crypto: { id: 'click_crypto', category: 'Клик', name: 'Крипто-ферма', basePrice: 5000, desc: '+$10 к клику', effect: (lvl) => lvl * 10 },
+            club_floor2: { id: 'club_floor2', category: 'Клуб', name: 'Второй этаж', basePrice: 7000, desc: '+4 места', effect: (lvl) => lvl * 4 },
+            marketing_sponsor: { id: 'marketing_sponsor', category: 'Маркетинг', name: 'Спонсор ФК', basePrice: 10000, desc: '+$1 к ставке', effect: (lvl) => lvl * 1 },
+            staff_director: { id: 'staff_director', category: 'Персонал', name: 'Управляющий', basePrice: 10000, desc: '+1 сек в зале', effect: (lvl) => lvl * 1 },
+            club_vip: { id: 'club_vip', category: 'Клуб', name: 'Вип ложа', basePrice: 10000, desc: '+$1 к ставке', effect: (lvl) => lvl * 1 },
+        };
+
+        const getPrice = (key, currentLevel) => {
+            const base = UPGRADES_CONFIG[key].basePrice;
+            return Math.floor(base * Math.pow(1.4, currentLevel));
+        };
+
+        function BetBoomTycoonMobile() {
+            const [state, setState] = useState(INITIAL_STATE);
+            const stateRef = useRef(state);
+            
+            useEffect(() => { stateRef.current = state; }, [state]);
+
+            const [floats, setFloats] = useState([]);
+            const floatIdCounter = useRef(0);
+            const spawnAccumulator = useRef(0);
+            const clickAnimRef = useRef(null);
+
+            // --- LOGIC CALCULATORS ---
+            
+            const getMaxQueue = useCallback((ups) => {
+                return 5 + UPGRADES_CONFIG.queue_barrier.effect(ups.queue_barrier) +
+                           (UPGRADES_CONFIG.queue_sign?.effect(ups.queue_sign) || 0) +
+                           (UPGRADES_CONFIG.queue_shade?.effect(ups.queue_shade) || 0);
+            }, []);
+
+            const getMaxHall = useCallback((ups) => {
+                return 5 + UPGRADES_CONFIG.club_expand.effect(ups.club_expand) + UPGRADES_CONFIG.club_floor2.effect(ups.club_floor2);
+            }, []);
+
+            const getClickValue = useCallback((ups) => {
+                return 1 + UPGRADES_CONFIG.click_crm.effect(ups.click_crm) + 
+                       UPGRADES_CONFIG.click_gold.effect(ups.click_gold) + 
+                       UPGRADES_CONFIG.click_crypto.effect(ups.click_crypto) +
+                       (UPGRADES_CONFIG.click_energy?.effect(ups.click_energy) || 0) +
+                       (UPGRADES_CONFIG.click_keyboard?.effect(ups.click_keyboard) || 0);
+            }, []);
+
+            const getGuestLifeTime = useCallback((ups) => {
+                return 1 + UPGRADES_CONFIG.club_repair.effect(ups.club_repair) + 
+                       UPGRADES_CONFIG.staff_director.effect(ups.staff_director) +
+                       UPGRADES_CONFIG.club_sofa.effect(ups.club_sofa) +
+                       UPGRADES_CONFIG.club_karaoke.effect(ups.club_karaoke) +
+                       (UPGRADES_CONFIG.club_vent?.effect(ups.club_vent) || 0) +
+                       (UPGRADES_CONFIG.club_chairs?.effect(ups.club_chairs) || 0);
+            }, []);
+
+            const getBetAmount = useCallback((ups) => {
+                return 1 + UPGRADES_CONFIG.club_vip.effect(ups.club_vip) + 
+                       UPGRADES_CONFIG.marketing_sponsor.effect(ups.marketing_sponsor) + 
+                       UPGRADES_CONFIG.staff_vip_manager.effect(ups.staff_vip_manager) +
+                       UPGRADES_CONFIG.bet_facecontrol.effect(ups.bet_facecontrol) +
+                       UPGRADES_CONFIG.bet_bar.effect(ups.bet_bar) +
+                       (UPGRADES_CONFIG.bet_snacks?.effect(ups.bet_snacks) || 0) +
+                       (UPGRADES_CONFIG.bet_drinks?.effect(ups.bet_drinks) || 0);
+            }, []);
+
+            const getSpawnRate = useCallback((ups) => {
+                return 1 + UPGRADES_CONFIG.marketing_ads.effect(ups.marketing_ads) + 
+                       UPGRADES_CONFIG.marketing_ambassador.effect(ups.marketing_ambassador) +
+                       UPGRADES_CONFIG.marketing_smm.effect(ups.marketing_smm) +
+                       UPGRADES_CONFIG.marketing_tv.effect(ups.marketing_tv) +
+                       (UPGRADES_CONFIG.marketing_flyers?.effect(ups.marketing_flyers) || 0) +
+                       (UPGRADES_CONFIG.marketing_spam?.effect(ups.marketing_spam) || 0);
+            }, []);
+
+            // --- LOAD & SAVE (V5) ---
+            useEffect(() => {
+                const saved = localStorage.getItem('betboom_tycoon_save_v5');
+                if (saved) {
+                    try {
+                        const parsed = JSON.parse(saved);
+                        // Merge для старых сейвов и новых апгрейдов
+                        const mergedUpgrades = { ...INITIAL_STATE.upgrades, ...parsed.upgrades };
+                        setState(prev => ({ ...prev, ...parsed, upgrades: mergedUpgrades }));
+                    } catch (e) { console.error("Save error", e); }
+                }
+            }, []);
+
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    localStorage.setItem('betboom_tycoon_save_v5', JSON.stringify(stateRef.current));
+                }, SAVE_INTERVAL_MS);
+                return () => clearInterval(interval);
+            }, []);
+
+            // --- GAME LOOP ---
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    const current = stateRef.current;
+                    const upgrades = current.upgrades;
+                    
+                    let newQueue = current.queue;
+                    let newHall = [...current.hall];
+                    let newMoney = current.money;
+                    let newTime = current.gameTime + 1;
+                    let moneyDelta = 0;
+
+                    // 1. SPAWN
+                    const maxQ = getMaxQueue(upgrades);
+                    if (newQueue < maxQ) {
+                        spawnAccumulator.current += getSpawnRate(upgrades);
+                        if (spawnAccumulator.current >= 1) {
+                            const toAdd = Math.floor(spawnAccumulator.current);
+                            spawnAccumulator.current -= toAdd;
+                            newQueue = Math.min(newQueue + toAdd, maxQ);
+                        }
+                    }
+
+                    // 2. HALL LOGIC
+                    const betVal = getBetAmount(upgrades);
+                    const activeGuests = [];
+                    
+                    newHall.forEach(guest => {
+                        const roll = Math.floor(Math.random() * 100) + 1;
+                        const isWin = roll <= 30;
+                        
+                        if (isWin) {
+                            moneyDelta -= betVal;
+                            spawnFloat(`-$${betVal.toFixed(1)}`, 'bad');
+                        } else {
+                            moneyDelta += betVal;
+                            spawnFloat(`+$${betVal.toFixed(1)}`, 'good');
+                        }
+                        
+                        if (guest.timeLeft > 1) {
+                            activeGuests.push({ ...guest, timeLeft: guest.timeLeft - 1 });
+                        }
+                    });
+                    
+                    newHall = activeGuests;
+                    newMoney = Math.max(0, newMoney + moneyDelta);
+
+                    // 3. MANAGER
+                    const managerLvl = upgrades.staff_manager;
+                    if (managerLvl > 0) {
+                        const maxH = getMaxHall(upgrades);
+                        const freeSlots = maxH - newHall.length;
+                        if (freeSlots > 0 && newQueue > 0) {
+                            const moveCount = Math.min(freeSlots, newQueue, managerLvl);
+                            const lifeTime = getGuestLifeTime(upgrades);
+                            for (let i = 0; i < moveCount; i++) {
+                                newHall.push({ id: Date.now() + Math.random(), timeLeft: lifeTime });
+                            }
+                            newQueue -= moveCount;
+                        }
+                    }
+
+                    setState(prev => ({
+                        ...prev, gameTime: newTime, queue: newQueue, hall: newHall, money: newMoney
+                    }));
+
+                }, GAME_TICK_MS);
+                return () => clearInterval(timer);
+            }, []);
+
+            // --- ACTIONS ---
+            const spawnFloat = (text, type, xPercent = null) => {
+                const id = floatIdCounter.current++;
+                const x = xPercent !== null ? xPercent : 20 + Math.random() * 60;
+                setFloats(prev => [...prev, { id, text, type, x }]);
+                setTimeout(() => {
+                    setFloats(prev => prev.filter(f => f.id !== id));
+                }, 800);
+            };
+
+            const handleManualMove = () => {
+                const { queue, hall, upgrades } = stateRef.current;
+                const maxH = getMaxHall(upgrades);
+                
+                if (queue > 0 && hall.length < maxH) {
+                    const lifeTime = getGuestLifeTime(upgrades);
+                    const newGuest = { id: Date.now() + Math.random(), timeLeft: lifeTime };
+                    setState(prev => ({ ...prev, queue: prev.queue - 1, hall: [...prev.hall, newGuest] }));
+                    triggerHaptic('light');
+                    playSound('enter');
+                }
+            };
+
+            const handleClick = () => {
+                const { upgrades } = stateRef.current;
+                const val = getClickValue(upgrades);
+                
+                if (clickAnimRef.current) {
+                    clickAnimRef.current.classList.remove('animate-click');
+                    void clickAnimRef.current.offsetWidth;
+                    clickAnimRef.current.classList.add('animate-click');
+                }
+
+                setState(prev => ({ ...prev, money: prev.money + val }));
+                spawnFloat(`+$${val.toFixed(1)}`, 'click', 50);
+                triggerHaptic('medium');
+                playSound('click');
+            };
+
+            const buyUpgrade = (key) => {
+                const { money, upgrades } = stateRef.current;
+                const lvl = upgrades[key];
+                const cost = getPrice(key, lvl);
+                
+                if (money >= cost) {
+                    setState(prev => ({
+                        ...prev,
+                        money: prev.money - cost,
+                        upgrades: { ...prev.upgrades, [key]: lvl + 1 }
+                    }));
+                    triggerHaptic('success');
+                    playSound('buy');
+                }
+            };
+
+            const formatMoney = (val) => Math.floor(val).toLocaleString('en-US').replace(/,/g, ' ');
+            const formatTime = (h) => `${Math.floor(h/24)}д ${h%24}ч`;
+
+            return (
+                <div className="flex flex-col h-[100dvh] w-full">
+                    {/* TOP STATS */}
+                    <div className="flex-none bg-gray-800 p-3 border-b border-gray-700 shadow-xl z-20">
+                        <div className="flex justify-between items-center">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Баланс</span>
+                                <div className="text-yellow-400 text-2xl font-black leading-none flex items-center gap-1">
+                                    <IconDollar size={20} className="stroke-2" />
+                                    {formatMoney(state.money)}
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Время</span>
+                                <div className="text-white text-lg font-bold leading-none flex items-center gap-1">
+                                    {formatTime(state.gameTime)} <IconClock size={16} />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase">
+                            <span>Гости: {state.hall.length} / {getMaxHall(state.upgrades)}</span>
+                            <span>Очередь: {state.queue} / {getMaxQueue(state.upgrades)}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-700 rounded-full mt-1 overflow-hidden">
+                           <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300" style={{ width: `${(state.hall.length / getMaxHall(state.upgrades)) * 100}%` }} />
+                        </div>
                     </div>
-                    <div class="upgrade-cost">${u.cost} ₽</div>
-                `;
-                div.onclick = () => buyUpgrade(u);
-                upgradesListEl.appendChild(div);
-            });
+
+                    {/* GAME AREA */}
+                    <div className="flex-1 relative flex flex-col min-h-0 bg-gray-900">
+                        <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+                            {floats.map(f => (
+                                <div key={f.id} className={`absolute font-black text-xl drop-shadow-md transition-opacity duration-700 ${f.type === 'good' ? 'text-green-400' : f.type === 'bad' ? 'text-red-500' : 'text-yellow-400 text-3xl'}`} style={{ left: `${f.x}%`, top: '30%', animation: 'floatUp 0.8s ease-out forwards' }}>
+                                    {f.text}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* STREET */}
+                        <div className="flex-[0.8] bg-gray-800/40 border-b border-gray-700/50 relative flex flex-col justify-center items-center py-2">
+                           <div className="absolute top-1 left-2 text-[10px] text-gray-600 font-bold uppercase">Очередь</div>
+                           <div className="flex items-end justify-center gap-1 h-12 mb-2 px-4 w-full flex-wrap overflow-hidden">
+                             {Array.from({ length: Math.min(10, state.queue) }).map((_, i) => (
+                               <div key={i} className={`transition-all duration-300 ${i < state.queue ? 'opacity-100 scale-100' : 'opacity-10 scale-75'}`}>
+                                 <IconUser size={32} className="text-gray-300" />
+                               </div>
+                             ))}
+                             {state.queue > 10 && <span className="text-gray-500 font-bold text-xs">+{state.queue - 10}</span>}
+                           </div>
+                           <button onClick={handleManualMove} disabled={state.queue === 0 || state.hall.length >= getMaxHall(state.upgrades)} className={`px-6 py-2 rounded-full font-bold text-xs uppercase tracking-wider border-2 transition-all active:scale-95 touch-manipulation ${state.queue > 0 && state.hall.length < getMaxHall(state.upgrades) ? 'bg-green-600/20 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-transparent border-gray-700 text-gray-600'}`}>
+                             Запустить в зал
+                           </button>
+                        </div>
+
+                        {/* HALL */}
+                        <div className="flex-[1.5] p-3 overflow-y-auto bg-gray-900">
+                           <div className="grid grid-cols-3 gap-2 pb-4">
+                             {state.hall.map((guest) => (
+                               <div key={guest.id} className="aspect-square bg-gray-800 rounded-xl border border-gray-700 relative flex flex-col items-center justify-center shadow-lg animate-popIn">
+                                 <IconCheck size={28} className="text-purple-400 mb-2" />
+                                 <div className="w-8/12 h-1 bg-gray-900 rounded-full overflow-hidden">
+                                   <div className="h-full bg-green-500 transition-all duration-1000 ease-linear" style={{ width: `${Math.min(100, (guest.timeLeft / getGuestLifeTime(state.upgrades)) * 100)}%` }} />
+                                 </div>
+                               </div>
+                             ))}
+                             {Array.from({ length: Math.max(0, getMaxHall(state.upgrades) - state.hall.length) }).map((_, i) => (
+                               <div key={`ph-${i}`} className="aspect-square rounded-xl border-2 border-dashed border-gray-800 flex items-center justify-center opacity-30">
+                                 <div className="w-2 h-2 rounded-full bg-gray-700" />
+                               </div>
+                             ))}
+                           </div>
+                        </div>
+                    </div>
+
+                    {/* CONTROLS */}
+                    <div className="flex-none bg-gray-800 border-t border-gray-700 flex flex-col h-[42dvh]">
+                        <div className="p-3 bg-gray-800 z-10 shadow-lg">
+                          <button ref={clickAnimRef} onClick={handleClick} className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center gap-3 text-white font-black text-xl uppercase tracking-wider shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-[4px] active:shadow-none transition-all touch-manipulation group">
+                            <IconTrend size={24} className="group-active:scale-110 transition-transform" /> Сделать ставку
+                          </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto px-3 pb-safe bg-gray-900">
+                          <div className="text-[10px] text-gray-500 font-bold uppercase py-2 sticky top-0 bg-gray-900 z-10 shadow-sm">Магазин улучшений</div>
+                          <div className="space-y-2 pb-4">
+                            {Object.values(UPGRADES_CONFIG).map((u) => {
+                               const lvl = state.upgrades[u.id];
+                               const cost = getPrice(u.id, lvl);
+                               const canBuy = state.money >= cost;
+                               const Icon = u.category === 'Клик' ? IconPlay : u.category === 'Клуб' ? IconStar : u.category === 'Маркетинг' ? IconBriefcase : IconPlusUser;
+                               const iconColor = u.category === 'Клик' ? 'text-yellow-500' : u.category === 'Клуб' ? 'text-purple-500' : u.category === 'Маркетинг' ? 'text-blue-500' : 'text-green-500';
+
+                               return (
+                                 <div key={u.id} onClick={() => canBuy && buyUpgrade(u.id)} className={`flex justify-between items-center p-3 rounded-lg border transition-all active:scale-[0.98] touch-manipulation ${canBuy ? 'bg-gray-800 border-gray-700 hover:border-gray-600 cursor-pointer' : 'bg-gray-800/50 border-transparent opacity-60'}`}>
+                                   <div className="flex items-center gap-3">
+                                     <div className={`p-2 rounded-lg bg-gray-900 ${iconColor}`}><Icon size={16} /></div>
+                                     <div>
+                                       <div className="text-sm font-bold text-gray-200 leading-tight">{u.name} <span className="text-gray-500 text-[10px]">Lvl {lvl}</span></div>
+                                       <div className="text-[10px] text-gray-400">{u.desc}</div>
+                                     </div>
+                                   </div>
+                                   <div className={`text-sm font-bold px-3 py-1 rounded ${canBuy ? 'bg-green-600/20 text-green-400' : 'text-gray-500'}`}>${cost}</div>
+                                 </div>
+                               );
+                            })}
+                          </div>
+                        </div>
+                    </div>
+                </div>
+            );
         }
 
-        // Обновление интерфейса
-        function updateUI() {
-            balanceEl.innerText = Math.floor(balance);
-            passiveEl.innerText = profitPerSecond;
-            renderShop(); // Перерисовываем, чтобы обновить доступность кнопок
-        }
-
-        // Пассивный доход (раз в секунду)
-        setInterval(() => {
-            if (profitPerSecond > 0) {
-                balance += profitPerSecond;
-                updateUI();
-            }
-        }, 1000);
-
-        // Сохранение прогресса при закрытии (опционально, но полезно)
-        tg.onEvent('viewportChanged', updateUI); // Просто чтобы триггернуть обновление
-
-        renderShop();
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BetBoomTycoonMobile />);
     </script>
 </body>
 </html>
