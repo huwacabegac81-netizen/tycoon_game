@@ -503,17 +503,7 @@
                             </div>
                         </div>
 
-                        {/* НИЖНИЙ БЛОК: Прогресс бар */}
-                        <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase">
-                            <span>Гости: {state.hall.length} / {stats.maxHall}</span>
-                            <span>Очередь: {state.queue} / {stats.maxQueue}</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-gray-700 rounded-full mt-1 overflow-hidden">
-                           <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300" 
-                                style={{ width: `${(state.hall.length / stats.maxHall) * 100}%` }} />
-                        </div>
-                    </div>
-                        {/* Прогресс бар заполненности зала */}
+                    {/* НИЖНИЙ БЛОК: Прогресс бар */}
                         <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase">
                             <span>Гости: {state.hall.length} / {stats.maxHall}</span>
                             <span>Очередь: {state.queue} / {stats.maxQueue}</span>
@@ -654,6 +644,7 @@
     </script>
 </body>
 </html>
+
 
 
 
