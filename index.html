@@ -3,46 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BetBoom Tycoon: Clean Version</title>
+    <title>BetBoom Tycoon</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+    <script>
+        window.onerror = function(msg, url, line) {
+            // Если React не загрузился, создаем блок ошибки
+            if (!document.getElementById('root').hasChildNodes()) {
+                const errBox = document.createElement('div');
+                errBox.style.cssText = 'position:fixed;top:0;left:0;background:red;color:white;padding:20px;z-index:9999;font-size:12px;width:100%';
+                errBox.innerHTML = '<b>ОШИБКА ЗАГРУЗКИ:</b><br>' + msg + '<br>Line: ' + line;
+                document.body.appendChild(errBox);
+            }
+        };
+    </script>
 
     <style>
         /* Базовые настройки поведения страницы */
         body {
-            user-select: none;          /* Запрет выделения текста */
-            -webkit-user-select: none;  /* Запрет для Safari */
-            -webkit-touch-callout: none;/* Убираем меню при долгом нажатии */
-            touch-action: manipulation; /* Улучшает отклик тача */
-            overscroll-behavior: none;  /* Запрет "пружинивания" страницы */
-            position: fixed;            /* Фиксация экрана (важно для Telegram) */
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+            position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #111827;  /* Темный фон по умолчанию */
+            background-color: #111827; /* Темный фон сразу, чтобы не слепило белым */
         }
         
-        /* Анимация всплывающего текста (денег) */
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-60px) scale(1.1); opacity: 0; }
-        }
-        
-        /* Анимация появления гостей */
-        @keyframes popIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        /* Классы для анимаций */
+        /* Анимации */
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-60px) scale(1.1); opacity: 0; } }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .animate-popIn { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .animate-click { transform: scale(0.95); } /* Эффект нажатия кнопки */
-        
-        /* Отступ снизу для iPhone (полоска "Домой") */
+        .animate-click { transform: scale(0.95); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
         
-        /* Красивый скроллбар */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #111827; }
         ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
@@ -521,3 +522,4 @@
     </script>
 </body>
 </html>
+
