@@ -179,15 +179,17 @@
 
         // Набор иконок (SVG)
         const Icons = {
-            User: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            User: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
             Dollar: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
             Clock: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-            Check: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>,
+            Check: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
             Trend: ({size, className}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
             Play: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
             Star: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
             Briefcase: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
-            PlusUser: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            PlusUser: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
+            ChevronUp: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>,
+            ChevronDown: ({size}) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         };
 
         // Компонент: Карточка товара в магазине
@@ -235,6 +237,7 @@
             // Состояния (State)
             const [state, setState] = useState(INITIAL_STATE);
             const [isGameStarted, setIsGameStarted] = useState(false);
+            const [isShopExpanded, setShopExpanded] = useState(false); // Открыт ли магазин
             const [floats, setFloats] = useState([]); // Всплывающие цифры
             
             // Refs (для хранения данных без перерисовки экрана)
@@ -398,6 +401,9 @@
 
             // Предварительный расчет статистики для рендера
             const stats = calcStats(state.upgrades);
+            // РАСЧЕТ ДОХОДА В СЕКУНДУ (IPS)
+            // Формула: Гости * Ставка * 0.4 
+            const incomePerSec = state.hall.length * stats.betAmount * 0.4;
             // =============================================================================================
             // СТАРТОВОЕ МЕНЮ 
             // =============================================================================================
@@ -421,7 +427,7 @@
                             </p>
                             <p className="text-gray-400 text-sm">
                                 У нас открыто уже более 347 клубов по всей России. 
-                                <br/>Теперь и твой черед стать лучшим!
+                                <br/>Теперь и твой черед стать частью лучшей сети клубов!
                             </p>
                         </div>
 
@@ -465,25 +471,30 @@
                     </div>
                 );
             }
-            
-            // =============================================================================================
-            // КОНЕЦ СТАРТОВОГО МЕНЮ
-            // =============================================================================================
             // =============================================================================================
             // БЛОК 5: ОТРИСОВКА ИНТЕРФЕЙСА (HTML)
             // =============================================================================================
             return (
                 <div className="flex flex-col h-[100dvh] w-full">
                     
-                    {/* --- ВЕРХНЯЯ ПАНЕЛЬ --- */}
+                 {/* --- ВЕРХНЯЯ ПАНЕЛЬ --- */}
                     <div className="flex-none bg-gray-800 p-3 border-b border-gray-700 shadow-xl z-20">
                         <div className="flex justify-between items-center">
+                            
+                            {/* ЛЕВЫЙ БЛОК: Баланс + Доход в секунду */}
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Баланс</span>
-                                <div className="text-yellow-400 text-2xl font-black leading-none flex items-center gap-1">
-                                    <Icons.Dollar size={20} className="stroke-2" /> {formatMoney(state.money)}
+                                <div className="flex items-end gap-2">
+                                    <div className="text-yellow-400 text-2xl font-black leading-none flex items-center gap-1">
+                                        <Icons.Dollar size={20} className="stroke-2" /> {formatMoney(state.money)}
+                                    </div>
+                                    <div className={`text-xs font-bold mb-0.5 animate-pulse ${incomePerSec > 0 ? 'text-green-400' : 'text-gray-500'}`}>
+                                        {incomePerSec > 0 ? '+' : ''}{incomePerSec.toFixed(1)}/сек
+                                    </div>
                                 </div>
                             </div>
+
+                            {/* ПРАВЫЙ БЛОК: Время  */}
                             <div className="flex flex-col items-end">
                                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">Время</span>
                                 <div className="text-white text-lg font-bold leading-none flex items-center gap-1">
@@ -491,6 +502,17 @@
                                 </div>
                             </div>
                         </div>
+
+                        {/* НИЖНИЙ БЛОК: Прогресс бар */}
+                        <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase">
+                            <span>Гости: {state.hall.length} / {stats.maxHall}</span>
+                            <span>Очередь: {state.queue} / {stats.maxQueue}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-700 rounded-full mt-1 overflow-hidden">
+                           <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300" 
+                                style={{ width: `${(state.hall.length / stats.maxHall) * 100}%` }} />
+                        </div>
+                    </div>
                         {/* Прогресс бар заполненности зала */}
                         <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 font-bold uppercase">
                             <span>Гости: {state.hall.length} / {stats.maxHall}</span>
@@ -503,7 +525,8 @@
                     </div>
 
                     {/* --- ИГРОВАЯ ЗОНА (Улица + Зал) --- */}
-                    <div className="flex-1 relative flex flex-col min-h-0 bg-gray-900">
+                    <div className={`relative flex flex-col bg-gray-900 transition-all duration-300 ${isShopExpanded ? 'flex-[0]' : 'flex-1 min-h-0'}`}>
+                        
                         {/* Слой всплывающих цифр */}
                         <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
                             {floats.map(f => (
@@ -518,59 +541,96 @@
                             ))}
                         </div>
 
-                        {/* УЛИЦА (Очередь) */}
-                        <div className="flex-[0.8] bg-gray-800/40 border-b border-gray-700/50 relative flex flex-col justify-center items-center py-2">
+                        {/* УЛИЦА (Очередь) - Компактная версия */}
+                        <div className="bg-gray-800/40 border-b border-gray-700/50 relative flex flex-col justify-center items-center py-2 shrink-0">
                            <div className="absolute top-1 left-2 text-[10px] text-gray-600 font-bold uppercase">Очередь</div>
-                           <div className="flex items-end justify-center gap-1 h-12 mb-2 px-4 w-full flex-wrap overflow-hidden">
-                             {Array.from({ length: Math.min(10, state.queue) }).map((_, i) => (
-                               <div key={i} className="animate-popIn"><Icons.User size={32} className="text-gray-300" /></div>
+                           
+                           <div className="flex items-center justify-center gap-[-5px] h-10 mb-1 w-full overflow-hidden">
+                             {Array.from({ length: Math.min(15, state.queue) }).map((_, i) => (
+                               <div key={i} className="animate-popIn -ml-2 first:ml-0 relative z-0">
+                                   <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-800 flex items-center justify-center">
+                                     <Icons.User size={16} className="text-gray-400" />
+                                   </div>
+                               </div>
                              ))}
-                             {state.queue > 10 && <span className="text-gray-500 font-bold text-xs">+{state.queue - 10}</span>}
+                             {state.queue > 15 && <span className="ml-2 text-gray-500 font-bold text-xs">+{state.queue - 15}</span>}
                            </div>
+
                            <button onClick={handleManualMove} 
                                    disabled={state.queue === 0 || state.hall.length >= stats.maxHall} 
-                                   className={`px-6 py-2 rounded-full font-bold text-xs uppercase tracking-wider border-2 transition-all active:scale-95 
-                                   ${state.queue > 0 && state.hall.length < stats.maxHall ? 'bg-green-600/20 border-green-500 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-transparent border-gray-700 text-gray-600'}`}>
-                             Запустить в зал
+                                   className={`px-4 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border transition-all active:scale-95 
+                                   ${state.queue > 0 && state.hall.length < stats.maxHall ? 'bg-green-600/20 border-green-500 text-green-400' : 'bg-transparent border-gray-700 text-gray-600'}`}>
+                             Запустить
                            </button>
                         </div>
 
-                        {/* ЗАЛ (Гости) */}
-                        <div className="flex-[1.5] p-3 overflow-y-auto bg-gray-900">
-                           <div className="grid grid-cols-3 gap-2 pb-4">
-                             {state.hall.map((guest) => (
-                               <div key={guest.id} className="aspect-square bg-gray-800 rounded-xl border border-gray-700 relative flex flex-col items-center justify-center shadow-lg animate-popIn">
-                                 <Icons.Check size={28} className="text-purple-400 mb-2" />
-                                 <div className="w-8/12 h-1 bg-gray-900 rounded-full overflow-hidden">
-                                   <div className="h-full bg-green-500 transition-all duration-1000 ease-linear" 
-                                        style={{ width: `${Math.min(100, (guest.timeLeft / stats.guestLife) * 100)}%` }} />
-                                 </div>
-                               </div>
-                             ))}
-                             {/* Пустые места (заполнители) */}
+                        {/* ЗАЛ (Гости) - Кружочки с таймерами */}
+                        <div className="flex-1 p-3 overflow-y-auto bg-gray-900 content-start">
+                           <div className="grid grid-cols-5 gap-3 pb-4">
+                             {state.hall.map((guest) => {
+                                 const progress = guest.timeLeft / stats.guestLife;
+                                 const radius = 18;
+                                 const circumference = 2 * Math.PI * radius;
+                                 const offset = circumference - (progress * circumference);
+                                 
+                                 return (
+                                   <div key={guest.id} className="relative flex flex-col items-center justify-center animate-popIn">
+                                     <div className="relative w-12 h-12 flex items-center justify-center">
+                                         <svg className="absolute inset-0 w-full h-full -rotate-90">
+                                             <circle cx="24" cy="24" r={radius} stroke="#374151" strokeWidth="3" fill="transparent" />
+                                             <circle cx="24" cy="24" r={radius} stroke="#a855f7" strokeWidth="3" fill="transparent" 
+                                                     strokeDasharray={circumference} 
+                                                     strokeDashoffset={offset} 
+                                                     strokeLinecap="round"
+                                                     className="transition-all duration-1000 ease-linear" />
+                                         </svg>
+                                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10">
+                                            <Icons.User size={16} className="text-gray-200" />
+                                         </div>
+                                     </div>
+                                   </div>
+                                 );
+                             })}
+                             {/* Пустые места */}
                              {Array.from({ length: Math.max(0, stats.maxHall - state.hall.length) }).map((_, i) => (
-                               <div key={`ph-${i}`} className="aspect-square rounded-xl border-2 border-dashed border-gray-800 flex items-center justify-center opacity-30">
-                                 <div className="w-2 h-2 rounded-full bg-gray-700" />
+                               <div key={`ph-${i}`} className="w-12 h-12 flex items-center justify-center opacity-20">
+                                 <div className="w-2 h-2 rounded-full bg-gray-600" />
                                </div>
                              ))}
                            </div>
                         </div>
                     </div>
-
-                    {/* --- НИЖНЯЯ ПАНЕЛЬ (Управление и Магазин) --- */}
-                    <div className="flex-none bg-gray-800 border-t border-gray-700 flex flex-col h-[42dvh]">
-                        {/* КНОПКА КЛИКА */}
-                        <div className="p-3 bg-gray-800 z-10 shadow-lg">
-                          <button ref={clickAnimRef} onClick={handleClick} 
-                                  className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center gap-3 text-white font-black text-xl uppercase tracking-wider shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-[4px] active:shadow-none transition-all touch-manipulation group">
-                            <Icons.Trend size={24} className="group-active:scale-110 transition-transform" /> Сделать ставку
-                          </button>
-                        </div>
+            {/* --- НИЖНЯЯ ПАНЕЛЬ (Умный магазин) --- */}
+                    <div className={`flex-none bg-gray-800 border-t border-gray-700 flex flex-col transition-all duration-300 ease-in-out z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] 
+                        ${isShopExpanded ? 'fixed bottom-0 left-0 right-0 h-[85dvh] rounded-t-3xl' : 'h-[42dvh] relative'}`}>
+                        
+                        {/* КНОПКА СТАВКИ (Скрывается при открытом магазине) */}
+                        {!isShopExpanded && (
+                            <div className="p-3 bg-gray-800 z-10 shadow-lg">
+                              <button ref={clickAnimRef} onClick={handleClick} 
+                                      className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center gap-3 text-white font-black text-xl uppercase tracking-wider shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-[4px] active:shadow-none transition-all touch-manipulation group">
+                                <Icons.Trend size={24} className="group-active:scale-110 transition-transform" /> Сделать ставку
+                              </button>
+                            </div>
+                        )}
 
                         {/* МАГАЗИН */}
-                        <div className="flex-1 overflow-y-auto px-3 pb-safe bg-gray-900">
-                          <div className="text-[10px] text-gray-500 font-bold uppercase py-2 sticky top-0 bg-gray-900 z-10 shadow-sm">Магазин улучшений</div>
-                          <div className="space-y-2 pb-4">
+                        <div className="flex-1 flex flex-col min-h-0 bg-gray-900">
+                          {/* Заголовок магазина + Кнопка развернуть */}
+                          <div 
+                            onClick={() => setShopExpanded(!isShopExpanded)}
+                            className="flex items-center justify-between px-4 py-3 bg-gray-800 cursor-pointer border-b border-gray-700 active:bg-gray-700 transition-colors"
+                          >
+                              <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                                  Магазин улучшений
+                              </div>
+                              <div className="text-gray-400">
+                                  {isShopExpanded ? <Icons.ChevronDown size={20}/> : <Icons.ChevronUp size={20}/>}
+                              </div>
+                          </div>
+
+                          {/* Список товаров */}
+                          <div className="flex-1 overflow-y-auto px-3 py-2 pb-safe space-y-2">
                             {Object.values(UPGRADES_CONFIG).map((u) => (
                                 <UpgradeItem 
                                     key={u.id} 
@@ -580,12 +640,11 @@
                                     onBuy={handleBuy} 
                                 />
                             ))}
+                            <div className="h-10"></div>
                           </div>
                         </div>
                     </div>
-                </div>
-            );
-        }
+                   
 
         // Запуск React приложения
         const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -593,6 +652,7 @@
     </script>
 </body>
 </html>
+
 
 
 
