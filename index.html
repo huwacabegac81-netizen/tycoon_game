@@ -234,6 +234,7 @@
         function BetBoomTycoonMobile() {
             // Состояния (State)
             const [state, setState] = useState(INITIAL_STATE);
+            const [isGameStarted, setIsGameStarted] = useState(false);
             const [floats, setFloats] = useState([]); // Всплывающие цифры
             
             // Refs (для хранения данных без перерисовки экрана)
@@ -397,7 +398,77 @@
 
             // Предварительный расчет статистики для рендера
             const stats = calcStats(state.upgrades);
+            // =============================================================================================
+            // СТАРТОВОЕ МЕНЮ 
+            // =============================================================================================
+            if (!isGameStarted) {
+                return (
+                    <div className="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+                        {/* Логотип / Заголовок */}
+                        <div className="mb-8 animate-popIn">
+                            <h1 className="text-4xl font-black text-yellow-400 uppercase tracking-tighter drop-shadow-lg">
+                                BetBoom
+                            </h1>
+                            <span className="text-2xl font-bold text-white tracking-widest uppercase bg-red-600 px-2 transform -skew-x-12 inline-block">
+                                Tycoon
+                            </span>
+                        </div>
 
+                        {/* Приветственный текст */}
+                        <div className="max-w-md space-y-4 mb-8">
+                            <p className="text-white text-lg font-bold leading-snug">
+                                Поздравляю, вы стали счастливым владельцем клуба BetBoom!
+                            </p>
+                            <p className="text-gray-400 text-sm">
+                                У нас открыто уже более 347 клубов по всей России. 
+                                <br/>Теперь и твой черед стать лучшим!
+                            </p>
+                        </div>
+
+                        {/* Список задач (Карточка с подсказками) */}
+                        <div className="w-full max-w-sm bg-gray-800/50 border border-gray-700 rounded-xl p-5 mb-8 text-left space-y-4 shadow-xl backdrop-blur-sm">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2 bg-purple-900/50 rounded-lg text-purple-400">
+                                    <Icons.Star size={24} />
+                                </div>
+                                <div className="text-sm text-gray-300">
+                                    <span className="text-white font-bold block">Улучшай клуб</span>
+                                    Покупай новую мебель и оборудование
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="p-2 bg-blue-900/50 rounded-lg text-blue-400">
+                                    <Icons.Briefcase size={24} />
+                                </div>
+                                <div className="text-sm text-gray-300">
+                                    <span className="text-white font-bold block">Привлекай людей</span>
+                                    Увеличивай трафик за счёт маркетинга
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Кнопка Старта */}
+                        <button 
+                            onClick={() => {
+                                setIsGameStarted(true);
+                                playSound('buy'); // Звук при старте
+                                triggerHaptic('success');
+                            }}
+                            className="w-full max-w-xs py-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-black text-xl rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.5)] uppercase tracking-wider active:scale-95 transition-all animate-popIn"
+                        >
+                            Открыть клуб
+                        </button>
+                        
+                        <div className="mt-6 text-[10px] text-gray-600 font-mono">
+                            v1.0 • Clean Release
+                        </div>
+                    </div>
+                );
+            }
+            
+            // =============================================================================================
+            // КОНЕЦ СТАРТОВОГО МЕНЮ
+            // =============================================================================================
             // =============================================================================================
             // БЛОК 5: ОТРИСОВКА ИНТЕРФЕЙСА (HTML)
             // =============================================================================================
@@ -522,5 +593,6 @@
     </script>
 </body>
 </html>
+
 
 
