@@ -38,7 +38,14 @@
         }
         
         /* Анимации */
+        /* Старая длинная анимация для кликов */
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-60px) scale(1.1); opacity: 0; } }
+        
+        /* Короткая и плавная для гостей */
+        @keyframes floatShort { 
+            0% { transform: translateY(0) scale(1); opacity: 1; } 
+            100% { transform: translateY(-25px) scale(1.2); opacity: 0; } 
+        }
         @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .animate-popIn { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .animate-click { transform: scale(0.95); }
@@ -234,7 +241,8 @@
             );
         };
 
-        // Компонент одного гостя (Слот)
+        // Компонент одного гостя
+       // Компонент одного гостя (Слот)
         const GuestSlot = ({ guest, maxLife }) => {
             if (!guest) {
                 return (
@@ -252,8 +260,9 @@
             const offset = circumference - (progress * circumference);
 
             return (
-                <div className="relative flex flex-col items-center justify-center">
+                <div className="relative flex flex-col items-center justify-center z-0"> {/* z-0 чтобы не перекрывать интерфейс */}
                     <div className="relative w-12 h-12 flex items-center justify-center">
+                        {/* Таймер */}
                         <svg className="absolute inset-0 w-full h-full -rotate-90">
                             <circle cx="24" cy="24" r={radius} stroke="#374151" strokeWidth="3" fill="transparent" />
                             <circle cx="24" cy="24" r={radius} stroke="#a855f7" strokeWidth="3" fill="transparent"
@@ -263,15 +272,20 @@
                                 className="transition-all duration-1000 ease-linear" />
                         </svg>
 
+                        {/* Аватар */}
                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10">
                             <Icons.User size={16} className="text-gray-200" />
                         </div>
 
+                        {/* Всплывающий текст (ОБНОВЛЕНО) */}
                         {guest.lastPop && (
                             <div key={guest.lastPop.id}
-                                className={`absolute -top-4 -right-6 text-[10px] font-black whitespace-nowrap z-20 pointer-events-none
-                                ${guest.lastPop.type === 'good' ? 'text-green-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]' : 'text-red-500'}`}
-                                style={{ animation: 'floatUp 0.8s ease-out forwards' }}>
+                                className={`absolute -top-5 -right-4 text-[11px] font-black whitespace-nowrap z-50 pointer-events-none px-1 rounded
+                                ${guest.lastPop.type === 'good' ? 'text-green-400' : 'text-red-500'}`}
+                                style={{ 
+                                    textShadow: '0px 1px 2px rgba(0,0,0,0.8)', // Тень для читаемости
+                                    animation: 'floatShort 0.8s ease-out forwards' // Новая анимация
+                                }}>
                                 {guest.lastPop.val}
                             </div>
                         )}
@@ -713,6 +727,7 @@
     </script>
 </body>
 </html>
+
 
 
 
