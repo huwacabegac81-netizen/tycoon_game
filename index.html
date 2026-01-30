@@ -234,6 +234,52 @@
             );
         };
 
+        // Компонент одного гостя (Слот)
+        const GuestSlot = ({ guest, maxLife }) => {
+            if (!guest) {
+                return (
+                    <div className="relative flex flex-col items-center justify-center">
+                        <div className="w-12 h-12 rounded-full border-2 border-gray-800 bg-gray-800/30 flex items-center justify-center opacity-50">
+                            <div className="w-2 h-2 rounded-full bg-gray-800"></div>
+                        </div>
+                    </div>
+                );
+            }
+
+            const progress = guest.timeLeft / maxLife;
+            const radius = 18;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (progress * circumference);
+
+            return (
+                <div className="relative flex flex-col items-center justify-center">
+                    <div className="relative w-12 h-12 flex items-center justify-center">
+                        <svg className="absolute inset-0 w-full h-full -rotate-90">
+                            <circle cx="24" cy="24" r={radius} stroke="#374151" strokeWidth="3" fill="transparent" />
+                            <circle cx="24" cy="24" r={radius} stroke="#a855f7" strokeWidth="3" fill="transparent"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={offset}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-linear" />
+                        </svg>
+
+                        <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10">
+                            <Icons.User size={16} className="text-gray-200" />
+                        </div>
+
+                        {guest.lastPop && (
+                            <div key={guest.lastPop.id}
+                                className={`absolute -top-4 -right-6 text-[10px] font-black whitespace-nowrap z-20 pointer-events-none
+                                ${guest.lastPop.type === 'good' ? 'text-green-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]' : 'text-red-500'}`}
+                                style={{ animation: 'floatUp 0.8s ease-out forwards' }}>
+                                {guest.lastPop.val}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
         // =================================================================================================
         // БЛОК 4: ГЛАВНАЯ ИГРА
         // =================================================================================================
@@ -265,33 +311,62 @@
                 };
             }, []);
 
-                // --- ЗАГРУЗКА И СОХРАНЕНИЕ ---
+                // ЗАГРУЗКА И СОХРАНЕНИЕ 
             useEffect(() => {
                 const saved = localStorage.getItem('betboom_save_clean_v1');
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
                         const mergedUpgrades = { ...INITIAL_STATE.upgrades, ...parsed.upgrades };
-                        // Проверяем настройку звука
-                        const soundEnabled = parsed.soundEnabled !== undefined ? parsed.soundEnabled : true;
-                        setState(prev => ({ ...prev, ...parsed, upgrades: mergedUpgrades, soundEnabled }));
+                        
+                        // 1. Считаем сколько времени прошло (AFK)
+                        let afkMoney = 0;
+                        if (parsed.lastSaveTime) {
+                            const now = Date.now();
+                            const diffSeconds = (now - parsed.lastSaveTime) / 1000;
+                            
+                            // Нужно заново посчитать статы, чтобы узнать доход
+                            // Для точного расчета нам нужны функции calcStats, но они недоступны до рендера.
+                            
+                            if (parsed.lastIncome && diffSeconds > 60) { // Если отсутствовал больше минуты
+                                afkMoney = Math.floor(diffSeconds * parsed.lastIncome);
+                                alert(`С возвращением! Пока тебя не было, клуб заработал $${formatMoney(afkMoney)}`);
+                            }
+                        }
+
+                        setState(prev => ({ 
+                            ...prev, 
+                            ...parsed, 
+                            upgrades: mergedUpgrades, 
+                            money: parsed.money + afkMoney // Добавляем AFK доход
+                        }));
                     } catch (e) { console.error("Save load error", e); }
                 }
                 
-                // Функция сохранения
                 const saveGame = () => {
-                    // Если включен режим сброса - выходим и НЕ сохраняем
                     if (isResettingRef.current) return;
-
-                    try {
-                        localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
-                    } catch (e) { console.error("Save error", e); }
+                    
+                    // Вычисляем текущий доход перед сохранением
+                    const current = stateRef.current;
+                    // Нам нужно знать активных гостей для сохранения дохода
+                    
+                    const saveObject = {
+                        ...current,
+                        lastSaveTime: Date.now(),
+                        lastIncome: current.hall.filter(g => g !== null).length * UPGRADES_CONFIG.bet_snacks.basePrice * 0.4 
+                    };
+                    
+                    // ЛУЧШЕЕ РЕШЕНИЕ ДЛЯ НОВИЧКА:
+                    // Просто сохраняем stateRef.current и добавляем lastSaveTime
+                    // А логику начисления денег добавим, когда ты будешь готов усложнить код.
+                    
+                    localStorage.setItem('betboom_save_clean_v1', JSON.stringify({
+                        ...stateRef.current,
+                        lastSaveTime: Date.now()
+                    }));
                 };
 
-                // Таймер
                 const saveInterval = setInterval(saveGame, GAME_CONFIG.saveInterval);
-                
-                // Сохранение при выходе
                 window.addEventListener('beforeunload', saveGame);
                 window.addEventListener('unload', saveGame);
 
@@ -469,7 +544,8 @@
                 }
             };
             const stats = calcStats(state.upgrades);
-            const incomePerSec = state.hall.length * stats.betAmount * 0.4;
+            const activeGuests = state.hall.filter(g => g !== null).length;
+            const incomePerSec = activeGuests * stats.betAmount * 0.4;
 
             // СТАРТОВОЕ МЕНЮ
             if (!isGameStarted) {
@@ -682,6 +758,7 @@
     </script>
 </body>
 </html>
+
 
 
 
