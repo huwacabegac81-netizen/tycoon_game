@@ -398,10 +398,21 @@ const handleManualMove = () => {
                 }
             };
 
-const handleReset = () => {
+                const handleReset = () => {
                 if (confirm('Ты уверен? Весь прогресс будет удален безвозвратно.')) {
-                    stateRef.current = INITIAL_STATE;
-                    localStorage.removeItem('betboom_save_clean_v1');
+                    const cleanUpgrades = {};
+                    Object.keys(UPGRADES_CONFIG).forEach(key => cleanUpgrades[key] = 0);
+                    const cleanState = {
+                        money: 0,
+                        gameTime: 0,
+                        queue: 0,
+                        hall: [],
+                        soundEnabled: true,
+                        upgrades: cleanUpgrades
+                    };
+
+                    stateRef.current = cleanState;
+                    localStorage.setItem('betboom_save_clean_v1', JSON.stringify(cleanState));
                     window.location.reload();
                 }
             };
@@ -584,6 +595,7 @@ const handleReset = () => {
     </script>
 </body>
 </html>
+
 
 
 
