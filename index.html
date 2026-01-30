@@ -302,16 +302,21 @@
                 };
             }, []);
 
-            // --- ИГРОВОЙ ЦИКЛ ---
+            // ИГРОВОЙ ЦИКЛ
             useEffect(() => {
                 const loop = setInterval(() => {
                     const current = stateRef.current;
                     const stats = calcStats(current.upgrades);
                     
                     let { queue, hall, money, gameTime } = current;
-                    let moneyDelta = 0;
+                    
+                    let newHall = [...hall];
+                    if (newHall.length < stats.maxHall) {
+                         const diff = stats.maxHall - newHall.length;
+                         for(let i=0; i<diff; i++) newHall.push(null);
+                    }
 
-                    // Спавн
+                    // 2. СПАВН В ОЧЕРЕДЬ
                     if (queue < stats.maxQueue) {
                         spawnAccumulator.current += stats.spawnRate;
                         if (spawnAccumulator.current >= 1) {
@@ -321,36 +326,57 @@
                         }
                     }
 
-                    // Обработка
-                    const activeGuests = [];
-                    hall.forEach(guest => {
+                    let moneyDelta = 0;
+
+                    // 3. ОБРАБОТКА ГОСТЕЙ В СЛОТАХ
+                    newHall = newHall.map(guest => {
+                        if (!guest) return null; // Если слот пуст, пропускаем
+
+                        // Уменьшаем время. Теперь удаляем только если < 0, чтобы визуально дошло до конца
+                        const newTimeLeft = guest.timeLeft - 1;
+
+                        if (newTimeLeft < 0) {
+                            return null; // Гость уходит, слот освобождается
+                        }
+
+                        // Логика денег и всплывающего текста ВНУТРИ гостя
                         const isLoss = Math.random() < 0.2; 
                         const amount = stats.betAmount;
+                        let popText = null;
 
                         if (isLoss) {
                             moneyDelta -= amount;
-                            spawnFloat(`-$${amount.toFixed(1)}`, 'bad');
+                            popText = { val: `-$${amount.toFixed(0)}`, type: 'bad', id: Date.now() }; // Убрали дроби для чистоты
                         } else {
                             moneyDelta += amount;
-                            spawnFloat(`+$${amount.toFixed(1)}`, 'good');
+                            popText = { val: `+$${amount.toFixed(0)}`, type: 'good', id: Date.now() };
                         }
 
-                        if (guest.timeLeft > 1) {
-                            activeGuests.push({ ...guest, timeLeft: guest.timeLeft - 1 });
-                        }
+                        return { 
+                            ...guest, 
+                            timeLeft: newTimeLeft,
+                            lastPop: popText // Сохраняем всплывашку внутри объекта гостя
+                        };
                     });
 
-                    // Менеджер
+                    // 4. МЕНЕДЖЕР (ЗАПОЛНЕНИЕ ПУСТЫХ СЛОТОВ)
                     const managerLvl = current.upgrades.staff_manager;
-                    if (managerLvl > 0) {
-                        const freeSlots = stats.maxHall - activeGuests.length;
-                        if (freeSlots > 0 && queue > 0) {
-                            const moveCount = Math.min(freeSlots, queue, managerLvl);
-                            for (let i = 0; i < moveCount; i++) {
-                                activeGuests.push({ id: Date.now() + Math.random(), timeLeft: stats.guestLife });
-                            }
-                            queue -= moveCount;
+                    if (managerLvl > 0 && queue > 0) {
+                        // Находим индексы пустых слотов
+                        const emptyIndices = newHall.map((g, i) => g === null ? i : -1).filter(i => i !== -1);
+                        
+                        // Сколько можем переместить
+                        const moveCount = Math.min(emptyIndices.length, queue, managerLvl);
+                        
+                        for (let i = 0; i < moveCount; i++) {
+                            const slotIndex = emptyIndices[i];
+                            newHall[slotIndex] = { 
+                                id: Date.now() + Math.random(), 
+                                timeLeft: stats.guestLife,
+                                lastPop: null // Для текста
+                            };
                         }
+                        queue -= moveCount;
                     }
 
                     setState(prev => ({
@@ -358,7 +384,7 @@
                         gameTime: gameTime + 1,
                         money: Math.max(0, money + moneyDelta),
                         queue,
-                        hall: activeGuests
+                        hall: newHall
                     }));
 
                 }, GAME_CONFIG.tickSpeed);
@@ -543,29 +569,58 @@
 
                         {/* Зал */}
                         <div className="flex-1 p-3 overflow-y-auto bg-gray-900 content-start">
+                           {/* Внутри <div className="flex-1 p-3..."> */}
                            <div className="grid grid-cols-5 gap-3 pb-4">
-                             {state.hall.map((guest) => {
+                             {/* Теперь мы рендерим все слоты, даже пустые */}
+                             {state.hall.map((guest, index) => {
+                                 // Рендер ПУСТОГО слота (чтобы сетка не ехала)
+                                 if (!guest) {
+                                     return (
+                                        <div key={`slot-${index}`} className="relative aspect-square rounded-full border-2 border-gray-800 bg-gray-800/30 flex items-center justify-center opacity-50">
+                                            <div className="w-2 h-2 rounded-full bg-gray-800"></div>
+                                        </div>
+                                     );
+                                 }
+
+                                 // Рендер ГОСТЯ
                                  const progress = guest.timeLeft / stats.guestLife;
                                  const radius = 18;
                                  const circumference = 2 * Math.PI * radius;
                                  const offset = circumference - (progress * circumference);
+                                 
                                  return (
-                                   <div key={guest.id} className="relative flex flex-col items-center justify-center animate-popIn">
+                                   <div key={guest.id} className="relative flex flex-col items-center justify-center">
                                      <div className="relative w-12 h-12 flex items-center justify-center">
+                                         {/* Таймер круговой */}
                                          <svg className="absolute inset-0 w-full h-full -rotate-90">
                                              <circle cx="24" cy="24" r={radius} stroke="#374151" strokeWidth="3" fill="transparent" />
-                                             <circle cx="24" cy="24" r={radius} stroke="#a855f7" strokeWidth="3" fill="transparent" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-1000 ease-linear" />
+                                             <circle cx="24" cy="24" r={radius} stroke="#a855f7" strokeWidth="3" fill="transparent" 
+                                                     strokeDasharray={circumference} 
+                                                     strokeDashoffset={offset} 
+                                                     strokeLinecap="round" 
+                                                     className="transition-all duration-1000 ease-linear" />
                                          </svg>
-                                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10">
+                                         
+                                         {/* Иконка */}
+                                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10 overflow-hidden">
                                             <Icons.User size={16} className="text-gray-200" />
+                                            
+                                            {/* Всплывающий текст ВНУТРИ ячейки */}
+                                            {guest.lastPop && (
+                                                <div key={guest.lastPop.id} 
+                                                     className={`absolute inset-0 flex items-center justify-center text-[10px] font-black bg-gray-900/90 animate-popIn
+                                                     ${guest.lastPop.type === 'good' ? 'text-green-400' : 'text-red-500'}`}>
+                                                    {guest.lastPop.val}
+                                                </div>
+                                            )}
                                          </div>
                                      </div>
                                    </div>
                                  );
                              })}
+                             
+                             {/* Если слотов вообще нет (первый запуск до useEffect), можно показать заглушки, но useEffect сработает быстро */}
                            </div>
-                        </div>
-                    </div>
 
                     {/* Магазин и Кнопка */}
                     <div className={`flex-none bg-gray-800 border-t border-gray-700 flex flex-col transition-all duration-300 ease-in-out z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] ${isShopExpanded ? 'fixed bottom-0 left-0 right-0 h-[85dvh] rounded-t-3xl' : 'h-[42dvh] relative'}`}>
@@ -599,6 +654,7 @@
     </script>
 </body>
 </html>
+
 
 
 
