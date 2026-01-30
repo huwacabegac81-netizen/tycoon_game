@@ -77,37 +77,48 @@
 
         // СПИСОК ВСЕХ ТОВАРОВ
         const UPGRADES_CONFIG = {
-            click_energy:     { id: 'click_energy', category: 'click', name: 'Энергетики', basePrice: 10, desc: '+$1 к клику', effect: lvl => lvl * 1 },
-            marketing_flyers: { id: 'marketing_flyers', category: 'marketing', name: 'Нанять промоутеров', basePrice: 20, desc: '+1 гость в час', effect: lvl => lvl * 1 },
-            club_vent:        { id: 'club_vent', category: 'club', name: 'Вентилятор', basePrice: 30, desc: '+1 сек в зале', effect: lvl => lvl * 1 },
-            queue_sign:       { id: 'queue_sign', category: 'club', name: 'Вывеска на здании', basePrice: 40, desc: '+1 место на в очереди', effect: lvl => lvl * 1 },
-            bet_snacks:       { id: 'bet_snacks', category: 'club', name: 'Орешки', basePrice: 50, desc: '+$1 к ставке', effect: lvl => lvl * 1 },
-            click_keyboard:   { id: 'click_keyboard', category: 'click', name: 'RGB Мышка', basePrice: 75, desc: '+$2 к клику', effect: lvl => lvl * 2 },
-            club_chairs:      { id: 'club_chairs', category: 'club', name: 'Табуретки', basePrice: 80, desc: '+2 сек в зале', effect: lvl => lvl * 2 },
-            click_crm:        { id: 'click_crm', category: 'click', name: 'CRM Система', basePrice: 100, desc: '+$3 к клику', effect: lvl => lvl * 3 },
-            marketing_ads:    { id: 'marketing_ads', category: 'marketing', name: 'Реклама', basePrice: 1000, desc: '+2 гостя в час', effect: lvl => lvl * 2 },
-            club_repair:      { id: 'club_repair', category: 'club', name: 'Ремонт в клубе', basePrice: 1000, desc: '+2 сек в зале', effect: lvl => lvl * 2 },
-            marketing_spam:   { id: 'marketing_spam', category: 'marketing', name: 'Рассылка', basePrice: 120, desc: '+3 гостя в час', effect: lvl => lvl * 3 },
-            bet_drinks:       { id: 'bet_drinks', category: 'club', name: 'Welcome-оффер', basePrice: 150, desc: '+$2 к ставке', effect: lvl => lvl * 2 },
-            staff_manager:    { id: 'staff_manager', category: 'staff', name: 'Нанять менеджера', basePrice: 200, desc: 'Авто-вход (1/сек)', effect: lvl => lvl * 1 },
-            queue_shade:      { id: 'queue_shade', category: 'club', name: 'Тент', basePrice: 250, desc: '+2 места на улице', effect: lvl => lvl * 2 },
-            queue_barrier:    { id: 'queue_barrier', category: 'club', name: 'Ограждение', basePrice: 500, desc: '+3 места на улице', effect: lvl => lvl * 3 },
-            marketing_smm:    { id: 'marketing_smm', category: 'marketing', name: 'SMM Отдел', basePrice: 600, desc: '+4 гостя в час', effect: lvl => lvl * 4 },
-            club_expand:      { id: 'club_expand', category: 'club', name: 'Расширение клуба', basePrice: 1000, desc: '+2 места в клубе', effect: lvl => lvl * 2 },
-            staff_vip_manager:{ id: 'staff_vip_manager', category: 'staff', name: 'Нанять VIP-менеджера', basePrice: 1000, desc: '+$3 к ставке', effect: lvl => lvl * 3 },
-            marketing_ambas:  { id: 'marketing_ambas', category: 'marketing', name: 'Подписать амбассадора', basePrice: 1000, desc: '+5 гостей в час', effect: lvl => lvl * 5 },
-            club_sofa:        { id: 'club_sofa', category: 'club', name: 'Мягкие диваны', basePrice: 1200, desc: '+3 сек в зале', effect: lvl => lvl * 3 },
-            click_gold:       { id: 'click_gold', category: 'click', name: 'Золотой палец', basePrice: 1500, desc: '+$2 к клику', effect: lvl => lvl * 2 },
-            bet_facecontrol:  { id: 'bet_facecontrol', category: 'club', name: 'Фейс-контроль', basePrice: 2000, desc: '+$2 к ставке', effect: lvl => lvl * 2 },
-            club_karaoke:     { id: 'club_karaoke', category: 'club', name: 'Караоке', basePrice: 3500, desc: '+2 сек в зале', effect: lvl => lvl * 2 },
-            marketing_tv:     { id: 'marketing_tv', category: 'marketing', name: 'Реклама на ТВ', basePrice: 4000, desc: '+3 гостя/час', effect: lvl => lvl * 3 },
-            bet_bar:          { id: 'bet_bar', category: 'club', name: 'Премиум Бар', basePrice: 5000, desc: '+$5 к ставке', effect: lvl => lvl * 5 },
-            click_crypto:     { id: 'click_crypto', category: 'click', name: 'Инвестиции в криту', basePrice: 5000, desc: '+$10 к клику', effect: lvl => lvl * 10 },
-            club_floor2:      { id: 'club_floor2', category: 'club', name: 'Построить дополнительный этаж', basePrice: 7000, desc: '+4 места', effect: lvl => lvl * 4 },
-            marketing_sponsor:{ id: 'marketing_sponsor', category: 'marketing', name: 'Спонсирование ФК', basePrice: 10000, desc: '+$1 к ставке', effect: lvl => lvl * 1 },
-            staff_director:   { id: 'staff_director', category: 'staff', name: 'Нанять управляющего', basePrice: 10000, desc: '+1 сек в зале', effect: lvl => lvl * 1 },
-            club_vip:         { id: 'club_vip', category: 'club', name: 'Вип ложа', basePrice: 10000, desc: '+$1 к ставке', effect: lvl => lvl * 1 },
-        };
+    // --- TIER 1: НАЧАЛО ($0 - $500) 
+    click_energy:     { id: 'click_energy', category: 'click', name: 'Энергетики', basePrice: 15, desc: '+$1 к клику', effect: lvl => lvl * 1 },
+    marketing_flyers: { id: 'marketing_flyers', category: 'marketing', name: 'Раздача листовок', basePrice: 25, desc: '+1 гость в час', effect: lvl => lvl * 1 },
+    club_vent:        { id: 'club_vent', category: 'club', name: 'Вентилятор', basePrice: 40, desc: '+1 сек в зале', effect: lvl => lvl * 1 },
+    bet_snacks:       { id: 'bet_snacks', category: 'club', name: 'Соленые орешки', basePrice: 60, desc: '+$1 к ставке', effect: lvl => lvl * 1 },
+    click_keyboard:   { id: 'click_keyboard', category: 'click', name: 'RGB Мышка', basePrice: 100, desc: '+$3 к клику', effect: lvl => lvl * 3 },
+    marketing_spam:   { id: 'marketing_spam', category: 'marketing', name: 'Спам в чатах', basePrice: 150, desc: '+2 гостя в час', effect: lvl => lvl * 2 },
+    staff_manager:    { id: 'staff_manager', category: 'staff', name: 'Нанять менеджера', basePrice: 250, desc: 'Авто-вход (1/сек)', effect: lvl => lvl * 1 },
+    queue_sign:       { id: 'queue_sign', category: 'club', name: 'Яркая вывеска', basePrice: 300, desc: '+2 места в очереди', effect: lvl => lvl * 2 },
+    bet_drinks:       { id: 'bet_drinks', category: 'club', name: 'Welcome Drink', basePrice: 450, desc: '+$2 к ставке', effect: lvl => lvl * 2 },
+
+    // --- TIER 2: РАЗГОН ($500 - $5,000) 
+    click_crm:        { id: 'click_crm', category: 'click', name: 'CRM Система', basePrice: 600, desc: '+$8 к клику', effect: lvl => lvl * 8 },
+    club_chairs:      { id: 'club_chairs', category: 'club', name: 'Мягкие стулья', basePrice: 800, desc: '+2 сек в зале', effect: lvl => lvl * 2 },
+    marketing_ads:    { id: 'marketing_ads', category: 'marketing', name: 'Таргет в соцсетях', basePrice: 1000, desc: '+5 гостей в час', effect: lvl => lvl * 5 },
+    queue_shade:      { id: 'queue_shade', category: 'club', name: 'Навес на улице', basePrice: 1200, desc: '+3 места в очереди', effect: lvl => lvl * 3 },
+    club_repair:      { id: 'club_repair', category: 'club', name: 'Косметический ремонт', basePrice: 1500, desc: '+3 сек в зале', effect: lvl => lvl * 3 },
+    bet_facecontrol:  { id: 'bet_facecontrol', category: 'club', name: 'Фейс-контроль', basePrice: 2000, desc: '+$3 к ставке', effect: lvl => lvl * 3 },
+    staff_security:   { id: 'staff_security', category: 'staff', name: 'Охранник', basePrice: 2500, desc: 'Авто-вход (2/сек)', effect: lvl => lvl * 2 }, 
+    click_gold:       { id: 'click_gold', category: 'click', name: 'Золотой курсор', basePrice: 3500, desc: '+$25 к клику', effect: lvl => lvl * 25 },
+    marketing_smm:    { id: 'marketing_smm', category: 'marketing', name: 'SMM Отдел', basePrice: 4500, desc: '+8 гостей в час', effect: lvl => lvl * 8 },
+
+    // --- TIER 3: БИЗНЕС ($5,000 - $50,000) 
+    club_expand:      { id: 'club_expand', category: 'club', name: 'Снос стены', basePrice: 6000, desc: '+3 места в клубе', effect: lvl => lvl * 3 },
+    bet_bar:          { id: 'bet_bar', category: 'club', name: 'Премиум алкоголь', basePrice: 8000, desc: '+$10 к ставке', effect: lvl => lvl * 10 },
+    staff_vip_manager:{ id: 'staff_vip_manager', category: 'staff', name: 'VIP-менеджер', basePrice: 10000, desc: '+$15 к ставке', effect: lvl => lvl * 15 },
+    marketing_ambas:  { id: 'marketing_ambas', category: 'marketing', name: 'Амбассадор бренда', basePrice: 12000, desc: '+15 гостей в час', effect: lvl => lvl * 15 },
+    click_crypto:     { id: 'click_crypto', category: 'click', name: 'Майнинг ферма', basePrice: 15000, desc: '+$100 к клику', effect: lvl => lvl * 100 },
+    club_sofa:        { id: 'club_sofa', category: 'club', name: 'Кожаные диваны', basePrice: 20000, desc: '+5 сек в зале', effect: lvl => lvl * 5 },
+    queue_barrier:    { id: 'queue_barrier', category: 'club', name: 'VIP вход', basePrice: 25000, desc: '+10 мест в очереди', effect: lvl => lvl * 10 },
+    marketing_tv:     { id: 'marketing_tv', category: 'marketing', name: 'Реклама на МатчТВ', basePrice: 40000, desc: '+25 гостей/час', effect: lvl => lvl * 25 },
+
+    // --- TIER 4: МАГНАТ ($50,000 - $1M+) 
+    club_floor2:      { id: 'club_floor2', category: 'club', name: 'Второй этаж', basePrice: 60000, desc: '+5 мест в клубе', effect: lvl => lvl * 5 },
+    staff_director:   { id: 'staff_director', category: 'staff', name: 'Ген. Директор', basePrice: 85000, desc: '+5 сек в зале', effect: lvl => lvl * 5 },
+    click_ai:         { id: 'click_ai', category: 'click', name: 'ИИ для ставок', basePrice: 120000, desc: '+$500 к клику', effect: lvl => lvl * 500 }, 
+    bet_vip_lounge:   { id: 'bet_vip_lounge', category: 'club', name: 'Закрытая ложа', basePrice: 150000, desc: '+$50 к ставке', effect: lvl => lvl * 50 },
+    marketing_sponsor:{ id: 'marketing_sponsor', category: 'marketing', name: 'Спонсор Лиги Чемпионов', basePrice: 250000, desc: '+100 гостей/час', effect: lvl => lvl * 100 },
+    club_hotel:       { id: 'club_hotel', category: 'club', name: 'Отель при клубе', basePrice: 500000, desc: '+10 сек в зале', effect: lvl => lvl * 10 }, 
+    click_neuralink:  { id: 'click_neuralink', category: 'click', name: 'Нейроинтерфейс', basePrice: 1000000, desc: '+$2000 к клику', effect: lvl => lvl * 2000 }, 
+    bet_monopoly:     { id: 'bet_monopoly', category: 'club', name: 'Монополия на рынке', basePrice: 5000000, desc: '+$500 к ставке', effect: lvl => lvl * 500 }, 
+};
 
         Object.keys(UPGRADES_CONFIG).forEach(key => INITIAL_STATE.upgrades[key] = 0);
 
@@ -595,6 +606,7 @@ const handleManualMove = () => {
     </script>
 </body>
 </html>
+
 
 
 
