@@ -54,7 +54,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Импортируем хуки из React
         const { useState, useEffect, useRef, useCallback } = React;
 
         // =================================================================================================
@@ -63,7 +62,7 @@
 
         const GAME_CONFIG = {
             tickSpeed: 1000,   // Скорость игры в мс (1000 = 1 секунда)
-            saveInterval: 5000 // Сохраняем каждые 5 секунд (чуть чаще)
+            saveInterval: 10000 
         };
 
         // Начальное состояние
@@ -110,7 +109,6 @@
             club_vip:         { id: 'club_vip', category: 'club', name: 'Вип ложа', basePrice: 10000, desc: '+$1 к ставке', effect: lvl => lvl * 1 },
         };
 
-        // Заполняем начальные нули
         Object.keys(UPGRADES_CONFIG).forEach(key => INITIAL_STATE.upgrades[key] = 0);
 
         // =================================================================================================
@@ -579,12 +577,14 @@ const handleManualMove = () => {
                     </div>
                 </div>
             );
-
+        }
+        
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<BetBoomTycoonMobile />);
     </script>
 </body>
 </html>
+
 
 
 
