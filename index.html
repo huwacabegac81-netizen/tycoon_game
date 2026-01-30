@@ -398,8 +398,8 @@
                 setFloats(prev => [...prev, { id, text, type, x }]);
                 setTimeout(() => setFloats(prev => prev.filter(f => f.id !== id)), 800);
             };
-//Перенос гостей в глуб нажатием кнопки "Впустить"
-const handleManualMove = () => {
+                //Перенос гостей в глуб нажатием кнопки "Впустить"
+                const handleManualMove = () => {
                 const stats = calcStats(state.upgrades);
                 
                 // Проверяем, есть ли место (либо есть null, либо массив еще не разросся до максимума)
@@ -442,7 +442,7 @@ const handleManualMove = () => {
                     clickAnimRef.current.classList.add('animate-click');
                 }
                 setState(prev => ({ ...prev, money: prev.money + stats.clickVal }));
-                spawnFloat(`+$${stats.clickVal.toFixed(1)}`, 'click', 50);
+                spawnFloat(`+$${stats.clickVal.toFixed(0)}`, 'click', 50);
                 triggerHaptic('medium');
                 if (state.soundEnabled) playSound('click');
             };
@@ -533,7 +533,7 @@ const handleManualMove = () => {
                                         <Icons.Dollar size={20} className="stroke-2" /> {formatMoney(state.money)}
                                     </div>
                                     <div className={`text-xs font-bold mb-0.5 animate-pulse ${incomePerSec > 0 ? 'text-green-400' : 'text-gray-500'}`}>
-                                        {incomePerSec > 0 ? '+' : ''}{incomePerSec.toFixed(1)}/сек
+                                        {incomePerSec > 0 ? '+' : ''}{incomePerSec.toFixed(0)}/сек
                                     </div>
                                 </div>
                             </div>
@@ -681,24 +681,6 @@ const handleManualMove = () => {
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
