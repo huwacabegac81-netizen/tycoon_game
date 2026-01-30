@@ -304,6 +304,7 @@
             const [isShopExpanded, setShopExpanded] = useState(false);
             const [isSettingsOpen, setSettingsOpen] = useState(false); // Новое состояние
             const [floats, setFloats] = useState([]);
+            const [activeCategory, setActiveCategory] = useState('club');
             
             const stateRef = useRef(state);
             const isResettingRef = useRef(false); // Блокировщик сохранения
@@ -325,59 +326,26 @@
                 };
             }, []);
 
-                // ЗАГРУЗКА И СОХРАНЕНИЕ 
+            // --- ЗАГРУЗКА И СОХРАНЕНИЕ (БЕЗ AFK) ---
             useEffect(() => {
+                // Загрузка
                 const saved = localStorage.getItem('betboom_save_clean_v1');
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
-                        const mergedUpgrades = { ...INITIAL_STATE.upgrades, ...parsed.upgrades };
-                        
-                        // 1. Считаем сколько времени прошло (AFK)
-                        let afkMoney = 0;
-                        if (parsed.lastSaveTime) {
-                            const now = Date.now();
-                            const diffSeconds = (now - parsed.lastSaveTime) / 1000;
-                            
-                            // Нужно заново посчитать статы, чтобы узнать доход
-                            // Для точного расчета нам нужны функции calcStats, но они недоступны до рендера.
-                            
-                            if (parsed.lastIncome && diffSeconds > 60) { // Если отсутствовал больше минуты
-                                afkMoney = Math.floor(diffSeconds * parsed.lastIncome);
-                                alert(`С возвращением! Пока тебя не было, клуб заработал $${formatMoney(afkMoney)}`);
-                            }
-                        }
-
+                        // Просто восстанавливаем стейт
                         setState(prev => ({ 
                             ...prev, 
                             ...parsed, 
-                            upgrades: mergedUpgrades, 
-                            money: parsed.money + afkMoney // Добавляем AFK доход
+                            upgrades: { ...INITIAL_STATE.upgrades, ...parsed.upgrades } 
                         }));
-                    } catch (e) { console.error("Save load error", e); }
+                    } catch (e) { console.error("Load error", e); }
                 }
                 
+                // Сохранение
                 const saveGame = () => {
                     if (isResettingRef.current) return;
-                    
-                    // Вычисляем текущий доход перед сохранением
-                    const current = stateRef.current;
-                    // Нам нужно знать активных гостей для сохранения дохода
-                    
-                    const saveObject = {
-                        ...current,
-                        lastSaveTime: Date.now(),
-                        lastIncome: current.hall.filter(g => g !== null).length * UPGRADES_CONFIG.bet_snacks.basePrice * 0.4 
-                    };
-                    
-                    // ЛУЧШЕЕ РЕШЕНИЕ ДЛЯ НОВИЧКА:
-                    // Просто сохраняем stateRef.current и добавляем lastSaveTime
-                    // А логику начисления денег добавим, когда ты будешь готов усложнить код.
-                    
-                    localStorage.setItem('betboom_save_clean_v1', JSON.stringify({
-                        ...stateRef.current,
-                        lastSaveTime: Date.now()
-                    }));
+                    localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
                 };
 
                 const saveInterval = setInterval(saveGame, GAME_CONFIG.saveInterval);
@@ -390,6 +358,7 @@
                     window.removeEventListener('unload', saveGame);
                 };
             }, []);
+
 
             // ИГРОВОЙ ЦИКЛ
             useEffect(() => {
@@ -695,38 +664,72 @@
                            </div>
                         </div>
                      </div> 
-                                            {/* Магазин и Кнопка */}
-                                            <div className={`flex-none bg-gray-800 border-t border-gray-700 flex flex-col transition-all duration-300 ease-in-out z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] ${isShopExpanded ? 'fixed bottom-0 left-0 right-0 h-[85dvh] rounded-t-3xl' : 'h-[42dvh] relative'}`}>
-                                                {!isShopExpanded && (
-                                                    <div className="p-3 bg-gray-800 z-10 shadow-lg">
-                                                      <button ref={clickAnimRef} onClick={handleClick} className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center gap-3 text-white font-black text-xl uppercase tracking-wider shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-[4px] active:shadow-none transition-all touch-manipulation group">
-                                                        <Icons.Trend size={24} className="group-active:scale-110 transition-transform" /> Сделать ставку
-                                                      </button>
-                                                    </div>
-                                                )}
+{/* Магазин и Кнопка */}
+                    <div className={`flex-none bg-gray-800 border-t border-gray-700 flex flex-col transition-all duration-300 ease-in-out z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] ${isShopExpanded ? 'fixed bottom-0 left-0 right-0 h-[85dvh] rounded-t-3xl' : 'h-[42dvh] relative'}`}>
                         
-                                                <div className="flex-1 flex flex-col min-h-0 bg-gray-900">
-                                                  <div onClick={() => setShopExpanded(!isShopExpanded)} className="flex items-center justify-between px-4 py-3 bg-gray-800 cursor-pointer border-b border-gray-700 active:bg-gray-700 transition-colors">
-                                                      <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Магазин улучшений</div>
-                                                      <div className="text-gray-400">{isShopExpanded ? <Icons.ChevronDown size={20}/> : <Icons.ChevronUp size={20}/>}</div>
-                                                  </div>
-                                                  <div className="flex-1 overflow-y-auto px-3 py-2 pb-safe space-y-2">
-                                                    {Object.values(UPGRADES_CONFIG).map((u) => (
-                                                        <UpgradeItem key={u.id} config={u} level={state.upgrades[u.id]} money={state.money} onBuy={handleBuy} />
-                                                    ))}
-                                                    <div className="h-10"></div>
-                                                  </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                }
+                        {/* Кнопка "Сделать ставку" (ПОКАЗЫВАЕТСЯ ТОЛЬКО ЕСЛИ МАГАЗИН СВЕРНУТ) */}
+                        {!isShopExpanded && (
+                            <div className="p-3 bg-gray-800 z-10 shadow-lg">
+                              <button ref={clickAnimRef} onClick={handleClick} className="w-full h-14 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center gap-3 text-white font-black text-xl uppercase tracking-wider shadow-[0_4px_0_rgb(180,83,9)] active:translate-y-[4px] active:shadow-none transition-all touch-manipulation group">
+                                <Icons.Trend size={24} className="group-active:scale-110 transition-transform" /> Сделать ставку
+                              </button>
+                            </div>
+                        )}
+
+                        {/* ВНУТРЕННОСТЬ МАГАЗИНА (ВОТ ЭТО МЫ ОБНОВИЛИ) */}
+                        <div className="flex-1 flex flex-col min-h-0 bg-gray-900">
+                          
+                          {/* Заголовок и кнопка сворачивания */}
+                          <div onClick={() => setShopExpanded(!isShopExpanded)} className="flex items-center justify-between px-4 py-3 bg-gray-800 cursor-pointer border-b border-gray-700 active:bg-gray-700 transition-colors">
+                              <div className="text-xs text-gray-400 font-bold uppercase tracking-widest">Магазин улучшений</div>
+                              <div className="text-gray-400">{isShopExpanded ? <Icons.ChevronDown size={20}/> : <Icons.ChevronUp size={20}/>}</div>
+                          </div>
+
+                          {/* ВКЛАДКИ КАТЕГОРИЙ (ТАБЫ) */}
+                          <div className="flex p-2 gap-2 bg-gray-900 overflow-x-auto border-b border-gray-800 no-scrollbar">
+                              {[
+                                  { id: 'club', name: 'Клуб', icon: Icons.Star },
+                                  { id: 'staff', name: 'Персонал', icon: Icons.PlusUser },
+                                  { id: 'click', name: 'Клик', icon: Icons.Trend },
+                                  { id: 'marketing', name: 'Маркетинг', icon: Icons.Briefcase }
+                              ].map(cat => (
+                                  <button 
+                                      key={cat.id}
+                                      onClick={() => setActiveCategory(cat.id)}
+                                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all shrink-0
+                                      ${activeCategory === cat.id 
+                                          ? 'bg-yellow-500 text-gray-900 shadow-lg scale-105' 
+                                          : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                                  >
+                                      <cat.icon size={14} /> {cat.name}
+                                  </button>
+                              ))}
+                          </div>
+
+                          {/* СПИСОК ТОВАРОВ (ФИЛЬТРОВАННЫЙ) */}
+                          <div className="flex-1 overflow-y-auto px-3 py-2 pb-safe space-y-2">
+                            {Object.values(UPGRADES_CONFIG)
+                                .filter(u => u.category === activeCategory)
+                                .map((u) => (
+                                    <UpgradeItem key={u.id} config={u} level={state.upgrades[u.id]} money={state.money} onBuy={handleBuy} />
+                            ))}
+                            
+                            {/* Заглушка, если пусто */}
+                            {Object.values(UPGRADES_CONFIG).filter(u => u.category === activeCategory).length === 0 && (
+                                <div className="text-center text-gray-500 text-xs py-10 uppercase">Скоро здесь появятся товары...</div>
+                            )}
+                            
+                            <div className="h-10"></div>
+                          </div>
+                        </div>
+                    </div>
         
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<BetBoomTycoonMobile />);
     </script>
 </body>
 </html>
+
 
 
 
