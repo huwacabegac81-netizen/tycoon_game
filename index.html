@@ -398,17 +398,39 @@
                 setFloats(prev => [...prev, { id, text, type, x }]);
                 setTimeout(() => setFloats(prev => prev.filter(f => f.id !== id)), 800);
             };
-
-            const handleManualMove = () => {
+//Перенос гостей в глуб нажатием кнопки "Впустить"
+const handleManualMove = () => {
                 const stats = calcStats(state.upgrades);
-                if (state.queue > 0 && state.hall.length < stats.maxHall) {
-                    setState(prev => ({
-                        ...prev,
-                        queue: prev.queue - 1,
-                        hall: [...prev.hall, { id: Date.now(), timeLeft: stats.guestLife }]
-                    }));
-                    triggerHaptic('light');
-                    if (state.soundEnabled) playSound('enter');
+                
+                // Проверяем, есть ли место (либо есть null, либо массив еще не разросся до максимума)
+                const hasPlace = state.hall.includes(null) || state.hall.length < stats.maxHall;
+
+                if (state.queue > 0 && hasPlace) {
+                    let newHall = [...state.hall];
+                    
+                    // Если массив короче максимума (например, при старте), добиваем его пустыми слотами
+                    while (newHall.length < stats.maxHall) {
+                        newHall.push(null);
+                    }
+
+                    // Ищем первый пустой слот
+                    const emptyIndex = newHall.findIndex(slot => slot === null);
+
+                    if (emptyIndex !== -1) {
+                        newHall[emptyIndex] = { 
+                            id: Date.now(), 
+                            timeLeft: stats.guestLife,
+                            lastPop: null
+                        };
+
+                        setState(prev => ({
+                            ...prev,
+                            queue: prev.queue - 1,
+                            hall: newHall
+                        }));
+                        triggerHaptic('light');
+                        if (state.soundEnabled) playSound('enter');
+                    }
                 }
             };
 
@@ -572,12 +594,14 @@
                            {/* Внутри <div className="flex-1 p-3..."> */}
                            <div className="grid grid-cols-5 gap-3 pb-4">
                              {/* Теперь мы рендерим все слоты, даже пустые */}
-                               {state.hall.map((guest, index) => {
-                                 // Рендер ПУСТОГО слота
+                                {state.hall.map((guest, index) => {
+                                 // Рендер ПУСТОГО слота в клубе 
                                  if (!guest) {
                                      return (
-                                        <div key={`slot-${index}`} className="relative aspect-square rounded-full border-2 border-gray-800 bg-gray-800/30 flex items-center justify-center opacity-50">
-                                            <div className="w-2 h-2 rounded-full bg-gray-800"></div>
+                                        <div key={`slot-${index}`} className="relative flex flex-col items-center justify-center">
+                                            <div className="w-12 h-12 rounded-full border-2 border-gray-800 bg-gray-800/30 flex items-center justify-center opacity-50">
+                                                <div className="w-2 h-2 rounded-full bg-gray-800"></div>
+                                            </div>
                                         </div>
                                      );
                                  }
@@ -590,7 +614,6 @@
                                  
                                  return (
                                    <div key={guest.id} className="relative flex flex-col items-center justify-center">
-                                     {/* Контейнер для кольца и аватара */}
                                      <div className="relative w-12 h-12 flex items-center justify-center">
                                          
                                          {/* Таймер круговой */}
@@ -603,13 +626,15 @@
                                                      className="transition-all duration-1000 ease-linear" />
                                          </svg>
                                          
+                                         {/* Иконка */}
                                          <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10">
                                             <Icons.User size={16} className="text-gray-200" />
                                          </div>
 
+                                         {/* Всплывающий текст (Сбоку и всплывает) */}
                                          {guest.lastPop && (
                                             <div key={guest.lastPop.id} 
-                                                 className={`absolute -top-4 -right-4 text-[10px] font-black whitespace-nowrap z-20 pointer-events-none
+                                                 className={`absolute -top-4 -right-6 text-[10px] font-black whitespace-nowrap z-20 pointer-events-none
                                                  ${guest.lastPop.type === 'good' ? 'text-green-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]' : 'text-red-500'}`}
                                                  style={{ animation: 'floatUp 0.8s ease-out forwards' }}>
                                                 {guest.lastPop.val}
@@ -656,6 +681,7 @@
     </script>
 </body>
 </html>
+
 
 
 
