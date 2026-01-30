@@ -420,12 +420,6 @@
                     window.location.reload();
                 }
             };
-
-                    stateRef.current = cleanState;
-                    localStorage.setItem('betboom_save_clean_v1', JSON.stringify(cleanState));
-                    window.location.reload();
-                }
-            };
             const stats = calcStats(state.upgrades);
             const incomePerSec = state.hall.length * stats.betAmount * 0.4;
 
@@ -605,6 +599,7 @@
     </script>
 </body>
 </html>
+
 
 
 
