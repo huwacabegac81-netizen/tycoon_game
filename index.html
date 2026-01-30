@@ -398,17 +398,17 @@ const handleManualMove = () => {
                 }
             };
 
-                const handleReset = () => {
+const handleReset = () => {
                 if (confirm('Ты уверен? Весь прогресс будет удален безвозвратно.')) {
+                    stateRef.current = INITIAL_STATE;
                     localStorage.removeItem('betboom_save_clean_v1');
-                    localStorage.setItem('betboom_save_clean_v1', JSON.stringify(INITIAL_STATE));
                     window.location.reload();
                 }
             };
             const stats = calcStats(state.upgrades);
             const incomePerSec = state.hall.length * stats.betAmount * 0.4;
 
-// СТАРТОВОЕ МЕНЮ
+            // СТАРТОВОЕ МЕНЮ
             if (!isGameStarted) {
                 return (
                     <div className="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
@@ -584,6 +584,7 @@ const handleManualMove = () => {
     </script>
 </body>
 </html>
+
 
 
 
