@@ -246,7 +246,8 @@
             const [floats, setFloats] = useState([]);
             
             const stateRef = useRef(state);
-            const spawnAccumulator = useRef(0);
+            const isResettingRef = useRef(false); // Блокировщик сохранения
+            const spawnAccumulator = useRef(0); //
             const clickAnimRef = useRef(null);
             
             useEffect(() => { stateRef.current = state; }, [state]);
@@ -264,14 +265,14 @@
                 };
             }, []);
 
-            // --- ЗАГРУЗКА И СОХРАНЕНИЕ ---
+                // --- ЗАГРУЗКА И СОХРАНЕНИЕ ---
             useEffect(() => {
                 const saved = localStorage.getItem('betboom_save_clean_v1');
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
                         const mergedUpgrades = { ...INITIAL_STATE.upgrades, ...parsed.upgrades };
-                        // Проверяем настройку звука (по умолчанию true)
+                        // Проверяем настройку звука
                         const soundEnabled = parsed.soundEnabled !== undefined ? parsed.soundEnabled : true;
                         setState(prev => ({ ...prev, ...parsed, upgrades: mergedUpgrades, soundEnabled }));
                     } catch (e) { console.error("Save load error", e); }
@@ -279,6 +280,9 @@
                 
                 // Функция сохранения
                 const saveGame = () => {
+                    // Если включен режим сброса - выходим и НЕ сохраняем
+                    if (isResettingRef.current) return;
+
                     try {
                         localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
                     } catch (e) { console.error("Save error", e); }
@@ -289,7 +293,7 @@
                 
                 // Сохранение при выходе
                 window.addEventListener('beforeunload', saveGame);
-                window.addEventListener('unload', saveGame); // Для мобилок
+                window.addEventListener('unload', saveGame);
 
                 return () => {
                     clearInterval(saveInterval);
@@ -369,7 +373,7 @@
                 setTimeout(() => setFloats(prev => prev.filter(f => f.id !== id)), 800);
             };
 
-const handleManualMove = () => {
+            const handleManualMove = () => {
                 const stats = calcStats(state.upgrades);
                 if (state.queue > 0 && state.hall.length < stats.maxHall) {
                     setState(prev => ({
@@ -411,16 +415,11 @@ const handleManualMove = () => {
 
                 const handleReset = () => {
                 if (confirm('Ты уверен? Весь прогресс будет удален безвозвратно.')) {
-                    const cleanUpgrades = {};
-                    Object.keys(UPGRADES_CONFIG).forEach(key => cleanUpgrades[key] = 0);
-                    const cleanState = {
-                        money: 0,
-                        gameTime: 0,
-                        queue: 0,
-                        hall: [],
-                        soundEnabled: true,
-                        upgrades: cleanUpgrades
-                    };
+                    isResettingRef.current = true; 
+                    localStorage.removeItem('betboom_save_clean_v1');
+                    window.location.reload();
+                }
+            };
 
                     stateRef.current = cleanState;
                     localStorage.setItem('betboom_save_clean_v1', JSON.stringify(cleanState));
@@ -606,6 +605,7 @@ const handleManualMove = () => {
     </script>
 </body>
 </html>
+
 
 
 
