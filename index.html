@@ -572,8 +572,8 @@
                            {/* Внутри <div className="flex-1 p-3..."> */}
                            <div className="grid grid-cols-5 gap-3 pb-4">
                              {/* Теперь мы рендерим все слоты, даже пустые */}
-                             {state.hall.map((guest, index) => {
-                                 // Рендер ПУСТОГО слота (чтобы сетка не ехала)
+                               {state.hall.map((guest, index) => {
+                                 // Рендер ПУСТОГО слота
                                  if (!guest) {
                                      return (
                                         <div key={`slot-${index}`} className="relative aspect-square rounded-full border-2 border-gray-800 bg-gray-800/30 flex items-center justify-center opacity-50">
@@ -590,7 +590,9 @@
                                  
                                  return (
                                    <div key={guest.id} className="relative flex flex-col items-center justify-center">
+                                     {/* Контейнер для кольца и аватара */}
                                      <div className="relative w-12 h-12 flex items-center justify-center">
+                                         
                                          {/* Таймер круговой */}
                                          <svg className="absolute inset-0 w-full h-full -rotate-90">
                                              <circle cx="24" cy="24" r={radius} stroke="#374151" strokeWidth="3" fill="transparent" />
@@ -601,25 +603,23 @@
                                                      className="transition-all duration-1000 ease-linear" />
                                          </svg>
                                          
-                                         {/* Иконка */}
-                                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10 overflow-hidden">
+                                         <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center relative z-10">
                                             <Icons.User size={16} className="text-gray-200" />
-                                            
-                                            {/* Всплывающий текст ВНУТРИ ячейки */}
-                                            {guest.lastPop && (
-                                                <div key={guest.lastPop.id} 
-                                                     className={`absolute inset-0 flex items-center justify-center text-[10px] font-black bg-gray-900/90 animate-popIn
-                                                     ${guest.lastPop.type === 'good' ? 'text-green-400' : 'text-red-500'}`}>
-                                                    {guest.lastPop.val}
-                                                </div>
-                                            )}
                                          </div>
+
+                                         {guest.lastPop && (
+                                            <div key={guest.lastPop.id} 
+                                                 className={`absolute -top-4 -right-4 text-[10px] font-black whitespace-nowrap z-20 pointer-events-none
+                                                 ${guest.lastPop.type === 'good' ? 'text-green-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]' : 'text-red-500'}`}
+                                                 style={{ animation: 'floatUp 0.8s ease-out forwards' }}>
+                                                {guest.lastPop.val}
+                                            </div>
+                                         )}
                                      </div>
                                    </div>
                                  );
                              })}
                              
-                             {/* Если слотов вообще нет (первый запуск до useEffect), можно показать заглушки, но useEffect сработает быстро */}
                            </div>
                         </div>
                     </div>
@@ -656,6 +656,7 @@
     </script>
 </body>
 </html>
+
 
 
 
