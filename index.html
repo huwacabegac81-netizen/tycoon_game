@@ -38,43 +38,70 @@
             background-color: #111827;
         }
 
-        /* === ВИЗУАЛИЗАЦИЯ === */
+/* === ВИЗУАЛИЗАЦИЯ 2.5D === */
         .iso-scene {
-            perspective: 800px;
-            overflow: hidden;
+            perspective: 600px; /* Глубина сцены */
             width: 100%;
             height: 100%;
             position: relative;
-            background: #0f172a; /* Темный фон */
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
+
         .iso-floor {
-            transform: rotateX(40deg) rotateZ(0deg); /* Наклон пола */
-            transform-style: preserve-3d;
-            width: 80%;
-            height: 60%;
-            margin: 10% auto;
+            width: 280px; /* Фиксированный размер, чтобы не плыло */
+            height: 280px;
             background: #1f2937;
+            /* Трюк с 3D: наклоняем пол назад */
+            transform: rotateX(45deg);
+            transform-style: preserve-3d;
             border: 4px solid #374151;
+            /* Толстая тень снизу создает эффект плиты/фундамента */
+            box-shadow: 0 20px 0 #111827, 0 30px 40px rgba(0,0,0,0.5);
             position: relative;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
-        /* Пиксельный человечек */
+
+        /* Класс для объектов, которые должны "стоять" вертикально */
+        .stand-up {
+            transform: rotateX(-45deg) translateY(-20%); /* Наклоняем обратно */
+            transform-style: preserve-3d;
+            transform-origin: bottom center; /* Вращаем от ног/основания */
+        }
+
+        /* Пиксельный человечек (обновленный) */
         .pixel-guest {
-            width: 12px;
-            height: 24px;
+            width: 14px;
+            height: 28px;
             position: absolute;
             transition: all 0.5s ease-in-out;
-            will-change: transform, top, left;
+            /* Важно: сначала позиция, потом подъем */
+            transform: translate3d(0,0,0) rotateX(-45deg) translateY(-40%);
+            transform-origin: bottom center;
+            z-index: 20;
         }
-        .pixel-head { width: 100%; height: 40%; background: #fbbf24; } /* Желтая голова */
-        .pixel-body { width: 100%; height: 60%; background: #ef4444; } /* Красное тело */
+        /* Тень под ногами для реализма */
+        .pixel-shadow {
+            width: 100%;
+            height: 4px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 50%;
+            position: absolute;
+            bottom: -2px;
+            transform: rotateX(0); /* Тень лежит на полу */
+            filter: blur(1px);
+        }
         
-        /* Анимация прыжков */
+        .pixel-head { width: 100%; height: 40%; background: #fbbf24; border-radius: 2px; } 
+        .pixel-body { width: 100%; height: 60%; background: #ef4444; border-radius: 2px; }
+
         @keyframes bounce-pixel {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            0%, 100% { margin-bottom: 0; }
+            50% { margin-bottom: 6px; } /* Прыжок через margin, чтобы не ломать 3D transform */
         }
-        .animate-bounce-pixel { animation: bounce-pixel 1s infinite steps(2); }
+        .animate-bounce-pixel { animation: bounce-pixel 0.8s infinite steps(2); }
 
         /* Анимации */
         /* Старая длинная анимация для кликов */
@@ -333,67 +360,82 @@
             );
         };
 
-        // КОМПОНЕНТ: Визуализация клуба
+// КОМПОНЕНТ: Визуализация клуба (3D версия)
         const ClubVisualizer = ({ upgrades, hall }) => {
-            // Проверяем, что куплено
-            const hasBar = upgrades.bet_snacks > 0;      // Бар (если куплены орешки)
-            const hasSofa = upgrades.club_sofa > 0;      // Диваны
-            const hasDJ = upgrades.club_vent > 0;        // Вентилятор (будет как DJ стойка)
-            const hasVIP = upgrades.bet_vip_lounge > 0;  // VIP ложа
+            const hasBar = upgrades.bet_snacks > 0;
+            const hasSofa = upgrades.club_sofa > 0;
+            const hasDJ = upgrades.club_vent > 0;
+            const hasVIP = upgrades.bet_vip_lounge > 0;
             
             return (
-                <div className="iso-scene flex items-center justify-center">
+                <div className="iso-scene">
                     <div className="iso-floor">
-                        {/* СЕТКА ПОЛА (декор) */}
-                        <div className="absolute inset-0 opacity-20 bg-[linear-gradient(0deg,transparent_24%,rgba(255,255,255,.3)_25%,rgba(255,255,255,.3)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.3)_75%,rgba(255,255,255,.3)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,.3)_25%,rgba(255,255,255,.3)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.3)_75%,rgba(255,255,255,.3)_76%,transparent_77%,transparent)] bg-[length:30px_30px]"></div>
+                        {/* Сетка на полу для красоты */}
+                        <div className="absolute inset-0 opacity-20 bg-[linear-gradient(0deg,transparent_24%,rgba(255,255,255,.3)_25%,rgba(255,255,255,.3)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.3)_75%,rgba(255,255,255,.3)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,.3)_25%,rgba(255,255,255,.3)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.3)_75%,rgba(255,255,255,.3)_76%,transparent_77%,transparent)] bg-[length:40px_40px] pointer-events-none"></div>
 
-                        {/* ОБЪЕКТ: Барная стойка (Справа сверху) */}
+                        {/* === ОБЪЕКТЫ (С ЭФФЕКТОМ ОБЪЕМА) === */}
+
+                        {/* БАР (Толстый блок) */}
                         {hasBar && (
-                            <div className="absolute top-0 right-0 w-24 h-16 bg-amber-800 border-2 border-amber-600 shadow-lg z-10">
-                                <div className="text-[8px] text-white text-center mt-1">BAR</div>
+                            <div className="stand-up absolute top-[10%] right-[10%] w-24 h-16 bg-amber-700 border-b-8 border-amber-900 shadow-xl flex items-center justify-center z-10"
+                                 style={{ boxShadow: '0 10px 20px rgba(0,0,0,0.5)' }}>
+                                <div className="absolute -top-4 w-full text-center bg-amber-900 text-[6px] text-white py-0.5">BAR</div>
+                                <div className="w-full h-1 bg-amber-500/30 absolute top-0"></div>
                             </div>
                         )}
 
-                        {/* ОБЪЕКТ: Диваны (Слева снизу) */}
+                        {/* ДИВАНЫ (Низкие блоки) */}
                         {hasSofa && (
-                            <div className="absolute bottom-4 left-4 w-32 h-10 bg-red-900 border border-red-500 rounded-sm z-10 shadow-md"></div>
+                            <div className="stand-up absolute bottom-[20%] left-[10%] w-32 h-10 bg-red-800 border-b-4 border-red-950 rounded-sm shadow-lg z-10 flex gap-1 px-1">
+                                <div className="w-8 h-full bg-red-700/50"></div>
+                                <div className="w-8 h-full bg-red-700/50"></div>
+                                <div className="w-8 h-full bg-red-700/50"></div>
+                            </div>
                         )}
 
-                        {/* ОБЪЕКТ: DJ / Вентилятор (Слева сверху) */}
+                        {/* DJ ПУЛЬТ (Круглый) */}
                         {hasDJ && (
-                            <div className="absolute top-4 left-4 w-12 h-12 bg-gray-600 rounded-full border-4 border-gray-400 animate-pulse z-10 flex items-center justify-center">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <div className="stand-up absolute top-[15%] left-[15%] w-14 h-14 bg-gray-700 rounded-full border-b-4 border-gray-900 shadow-xl z-10 flex items-center justify-center animate-pulse">
+                                <div className="w-10 h-10 border-2 border-green-500 rounded-full bg-black"></div>
                             </div>
                         )}
                         
-                        {/* ОБЪЕКТ: VIP Зона (По центру, если есть) */}
+                        {/* VIP (Стеклянная коробка) */}
                         {hasVIP && (
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 border-4 border-yellow-500 bg-yellow-900/50 z-0">
-                                <div className="text-[6px] text-yellow-500 text-center">VIP</div>
+                            <div className="stand-up absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-yellow-900/40 border-2 border-yellow-500 shadow-2xl z-0 backdrop-blur-sm">
+                                <div className="absolute top-0 w-full text-center text-[8px] font-bold text-yellow-400 bg-black/50">VIP</div>
                             </div>
                         )}
 
-                        {/* ГОСТИ (Рендерим их поверх пола) */}
+                        {/* === ГОСТИ === */}
                         {hall.map((guest, i) => {
                             if (!guest) return null;
-                            // Генерируем "случайную" позицию на основе индекса, чтобы они стояли в разных местах
-                            const top = 20 + (i * 13 % 60) + '%'; 
-                            const left = 10 + (i * 7 % 80) + '%';
+                            // Сортировка по глубине (чем ниже Y, тем выше z-index)
+                            // Мы используем фиксированные слоты, чтобы они не накладывались некрасиво
+                            const row = Math.floor(i / 5); 
+                            const col = i % 5;
                             
+                            // Размещаем их "шахматкой" или сеткой
+                            const top = 30 + (row * 15) + '%'; 
+                            const left = 15 + (col * 15) + '%';
+                            const zIndex = 50 + row; // Те кто ниже, перекрывают тех кто выше
+
                             return (
-                                <div key={guest.id || i} className="pixel-guest animate-bounce-pixel shadow-sm z-20"
-                                     style={{ top: top, left: left, animationDelay: `${i * 0.1}s` }}>
+                                <div key={guest.id || i} className="pixel-guest animate-bounce-pixel"
+                                     style={{ top: top, left: left, zIndex: zIndex, animationDelay: `${col * 0.1}s` }}>
                                     <div className="pixel-head"></div>
                                     <div className="pixel-body"></div>
+                                    <div className="pixel-shadow"></div>
                                 </div>
                             );
                         })}
                     </div>
                     
-                    {/* Текст внизу */}
-                    <div className="absolute bottom-10 text-center w-full">
-                        <div className="text-yellow-500 font-black text-xl uppercase tracking-widest drop-shadow-md">CLUB VIEW</div>
-                        <div className="text-gray-500 text-[10px]">Покупай улучшения, чтобы наполнить клуб</div>
+                    {/* Подпись снизу, вне 3D сцены */}
+                    <div className="absolute bottom-6 text-center w-full pointer-events-none">
+                        <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-sm uppercase">
+                            BetBoom Club
+                        </h2>
                     </div>
                 </div>
             );
@@ -867,6 +909,7 @@
     </script>
 </body>
 </html>
+
 
 
 
