@@ -37,6 +37,20 @@
             top: 0; left: 0; right: 0; bottom: 0;
             background-color: #111827;
         }
+        
+        /* Скрываем скроллбар, но оставляем возможность скроллить */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Защита от случайного обновления страницы при тянущем движении вниз (Pull-to-refresh) */
+        html, body {
+            overscroll-behavior-y: contain; 
+        }
 
 /* === ВИЗУАЛИЗАЦИЯ (FULL SCREEN) === */
         .visual-mode-container {
@@ -587,31 +601,42 @@
                 }
             }, []);
 
-            // --- ЗАГРУЗКА И СОХРАНЕНИЕ (БЕЗ AFK) ---
+// --- ЗАГРУЗКА И СОХРАНЕНИЕ (БЕЗ AFK) ---
             useEffect(() => {
-                // Загрузка
+                // 1. ЗАГРУЗКА
                 const saved = localStorage.getItem('betboom_save_clean_v1');
                 if (saved) {
                     try {
                         const parsed = JSON.parse(saved);
-                        // Просто восстанавливаем стейт
+                        
+                        // ВАЖНОЕ ИСПРАВЛЕНИЕ:
+                        // Сначала берем чистый начальный стейт (INITIAL_STATE.upgrades),
+                        // а сверху накладываем то, что загрузили (parsed.upgrades).
+                        // Это спасет игру, если ты добавишь новые товары в будущем.
+                        const safeUpgrades = { 
+                            ...INITIAL_STATE.upgrades, 
+                            ...(parsed.upgrades || {}) 
+                        };
+
                         setState(prev => ({ 
                             ...prev, 
                             ...parsed, 
-                            upgrades: { ...INITIAL_STATE.upgrades, ...parsed.upgrades } 
+                            upgrades: safeUpgrades 
                         }));
-                    } catch (e) { console.error("Load error", e); }
+                    } catch (e) { console.error("Ошибка загрузки сохранения:", e); }
                 }
                 
-                // Сохранение
+                // 2. СОХРАНЕНИЕ
                 const saveGame = () => {
+                    // Если нажали "Сброс", не сохраняем в этот момент
                     if (isResettingRef.current) return;
                     localStorage.setItem('betboom_save_clean_v1', JSON.stringify(stateRef.current));
                 };
 
+                // Сохраняем каждые X секунд и при закрытии вкладки
                 const saveInterval = setInterval(saveGame, GAME_CONFIG.saveInterval);
                 window.addEventListener('beforeunload', saveGame);
-                window.addEventListener('unload', saveGame);
+                window.addEventListener('unload', saveGame); // Для мобилок полезно дублировать
 
                 return () => {
                     clearInterval(saveInterval);
@@ -1022,6 +1047,7 @@
     </script>
 </body>
 </html>
+
 
 
 
