@@ -38,70 +38,114 @@
             background-color: #111827;
         }
 
-/* === ВИЗУАЛИЗАЦИЯ 2.5D === */
+/* === ВИЗУАЛИЗАЦИЯ (FULL SCREEN) === */
+        .visual-mode-container {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0f172a;
+            z-index: 9999; /* Поверх всего */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .iso-scene {
-            perspective: 600px; /* Глубина сцены */
+            perspective: 800px;
             width: 100%;
             height: 100%;
             position: relative;
-            background: #0f172a;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            /* Зуммируем для телефонов, чтобы пиксели были крупнее */
+            transform: scale(1.2); 
         }
 
         .iso-floor {
-            width: 280px; /* Фиксированный размер, чтобы не плыло */
-            height: 280px;
+            width: 300px;
+            height: 300px;
             background: #1f2937;
-            /* Трюк с 3D: наклоняем пол назад */
-            transform: rotateX(45deg);
+            transform: rotateX(50deg) rotateZ(-45deg); /* Поворот ромбом для изометрии */
             transform-style: preserve-3d;
-            border: 4px solid #374151;
-            /* Толстая тень снизу создает эффект плиты/фундамента */
-            box-shadow: 0 20px 0 #111827, 0 30px 40px rgba(0,0,0,0.5);
+            border: 8px solid #374151;
+            box-shadow: -20px 20px 50px rgba(0,0,0,0.5);
             position: relative;
         }
 
-        /* Класс для объектов, которые должны "стоять" вертикально */
-        .stand-up {
-            transform: rotateX(-45deg) translateY(-20%); /* Наклоняем обратно */
-            transform-style: preserve-3d;
-            transform-origin: bottom center; /* Вращаем от ног/основания */
+        /* Тротуар (Очередь) */
+        .iso-sidewalk {
+            position: absolute;
+            left: -60px; /* Сбоку от клуба */
+            bottom: 0;
+            width: 50px;
+            height: 100%;
+            background: #374151;
+            border-right: 2px dashed #4b5563;
+            transform-origin: bottom right;
         }
 
-        /* Пиксельный человечек (обновленный) */
-        .pixel-guest {
-            width: 14px;
-            height: 28px;
+        /* Объекты, стоящие вертикально */
+        .stand-up {
             position: absolute;
-            transition: all 0.5s ease-in-out;
-            /* Важно: сначала позиция, потом подъем */
-            transform: translate3d(0,0,0) rotateX(-45deg) translateY(-40%);
+            transform-style: preserve-3d;
+            transform: rotateZ(45deg) rotateX(-50deg) translateZ(10px); /* Компенсация поворота пола */
             transform-origin: bottom center;
-            z-index: 20;
         }
-        /* Тень под ногами для реализма */
-        .pixel-shadow {
+
+        /* ЧЕЛОВЕЧКИ */
+        .pixel-guest {
+            width: 10px;
+            height: 24px;
+            position: absolute;
+            /* Плавное движение */
+            transition: top 2s linear, left 2s linear; 
+            z-index: 20;
+            transform-style: preserve-3d;
+        }
+        
+        /* Внутренности человечка (чтобы он стоял) */
+        .guest-sprite {
             width: 100%;
-            height: 4px;
+            height: 100%;
+            transform: rotateZ(45deg) rotateX(-50deg) translateY(-50%);
+            transform-origin: bottom center;
+        }
+
+        .pixel-head { width: 100%; height: 35%; background: #e0ac69; border-radius: 2px 2px 0 0; } /* Телесный цвет */
+        .pixel-body { width: 100%; height: 65%; background: #ef4444; border-radius: 0 0 2px 2px; }
+        
+        /* Персонал */
+        .staff-body { background: #10b981; } /* Зеленый (Менеджер) */
+        .security-body { background: #111827; } /* Черный (Охрана) */
+
+        .pixel-shadow {
+            width: 12px;
+            height: 6px;
             background: rgba(0,0,0,0.4);
             border-radius: 50%;
             position: absolute;
             bottom: -2px;
-            transform: rotateX(0); /* Тень лежит на полу */
-            filter: blur(1px);
+            left: -1px;
+            filter: blur(2px);
+            transform: rotateZ(45deg) rotateX(-50deg);
         }
-        
-        .pixel-head { width: 100%; height: 40%; background: #fbbf24; border-radius: 2px; } 
-        .pixel-body { width: 100%; height: 60%; background: #ef4444; border-radius: 2px; }
 
-        @keyframes bounce-pixel {
-            0%, 100% { margin-bottom: 0; }
-            50% { margin-bottom: 6px; } /* Прыжок через margin, чтобы не ломать 3D transform */
+        /* ОБЪЕКТЫ */
+        /* Вентилятор */
+        .fan-blades {
+            width: 140%; height: 140%;
+            border-radius: 50%;
+            border: 2px dashed #9ca3af;
+            position: absolute;
+            top: -20%; left: -20%;
+            animation: spin 0.5s linear infinite;
         }
-        .animate-bounce-pixel { animation: bounce-pixel 0.8s infinite steps(2); }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
 
         /* Анимации */
         /* Старая длинная анимация для кликов */
@@ -360,82 +404,140 @@
             );
         };
 
-// КОМПОНЕНТ: Визуализация клуба (3D версия)
-        const ClubVisualizer = ({ upgrades, hall }) => {
+// 1. Блуждающий гость (ходит сам)
+        const WanderingGuest = ({ type = 'guest' }) => {
+            // Случайная позиция при старте
+            const [pos, setPos] = useState({ 
+                top: Math.floor(Math.random() * 80) + 10, 
+                left: Math.floor(Math.random() * 80) + 10 
+            });
+
+            useEffect(() => {
+                // Функция выбора новой точки
+                const move = () => {
+                    setPos({ 
+                        top: Math.floor(Math.random() * 80) + 10, 
+                        left: Math.floor(Math.random() * 80) + 10 
+                    });
+                };
+
+                // Каждый гость выбирает свой ритм движения (от 2 до 5 секунд)
+                const intervalTime = 2000 + Math.random() * 3000; 
+                const interval = setInterval(move, intervalTime);
+                setTimeout(move, 100); // Сделать первый шаг сразу
+
+                return () => clearInterval(interval);
+            }, []);
+
+            // Чем ниже гость на экране (top больше), тем выше z-index (он перекрывает задних)
+            const zIndex = Math.floor(pos.top);
+
+            return (
+                <div className="pixel-guest" style={{ top: `${pos.top}%`, left: `${pos.left}%`, zIndex: zIndex }}>
+                    <div className="pixel-shadow"></div>
+                    <div className="guest-sprite">
+                        <div className="pixel-head"></div>
+                        <div className={`pixel-body ${type === 'staff' ? 'staff-body' : type === 'security' ? 'security-body' : ''}`}></div>
+                        {/* Галстук для персонала */}
+                        {type !== 'guest' && <div className="absolute top-[40%] left-[40%] w-[20%] h-[20%] bg-white rounded-full"></div>}
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. Гость в очереди (стоит на улице)
+        const QueueGuest = ({ index }) => {
+            const bottomPos = 10 + (index * 8); 
+            if (bottomPos > 110) return null; // Не рисуем, если очередь ушла за экран
+
+            return (
+                <div className="pixel-guest" style={{ bottom: `${bottomPos}%`, left: '20%', zIndex: 100 - index }}>
+                     <div className="guest-sprite">
+                        <div className="pixel-head" style={{background: '#d19a66'}}></div>
+                        <div className="pixel-body" style={{background: '#6b7280'}}></div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Главный экран клуба (Полный экран)
+        const ClubVisualizer = ({ upgrades, hall, queue, onClose }) => {
             const hasBar = upgrades.bet_snacks > 0;
             const hasSofa = upgrades.club_sofa > 0;
-            const hasDJ = upgrades.club_vent > 0;
+            const hasFan = upgrades.club_vent > 0;
             const hasVIP = upgrades.bet_vip_lounge > 0;
             
+            // Персонал
+            const hasManager = upgrades.staff_manager > 0;
+            const hasSecurity = upgrades.staff_security > 0;
+
             return (
-                <div className="iso-scene">
-                    <div className="iso-floor">
-                        {/* Сетка на полу для красоты */}
-                        <div className="absolute inset-0 opacity-20 bg-[linear-gradient(0deg,transparent_24%,rgba(255,255,255,.3)_25%,rgba(255,255,255,.3)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.3)_75%,rgba(255,255,255,.3)_76%,transparent_77%,transparent),linear-gradient(90deg,transparent_24%,rgba(255,255,255,.3)_25%,rgba(255,255,255,.3)_26%,transparent_27%,transparent_74%,rgba(255,255,255,.3)_75%,rgba(255,255,255,.3)_76%,transparent_77%,transparent)] bg-[length:40px_40px] pointer-events-none"></div>
+                <div className="visual-mode-container animate-popIn">
+                    {/* Кнопка НАЗАД (Стрелка) */}
+                    <button onClick={onClose} className="absolute top-6 left-6 z-50 bg-gray-800/80 p-3 rounded-full border border-gray-600 text-white shadow-lg active:scale-90 transition-transform backdrop-blur-md">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
 
-                        {/* === ОБЪЕКТЫ (С ЭФФЕКТОМ ОБЪЕМА) === */}
-
-                        {/* БАР (Толстый блок) */}
-                        {hasBar && (
-                            <div className="stand-up absolute top-[10%] right-[10%] w-24 h-16 bg-amber-700 border-b-8 border-amber-900 shadow-xl flex items-center justify-center z-10"
-                                 style={{ boxShadow: '0 10px 20px rgba(0,0,0,0.5)' }}>
-                                <div className="absolute -top-4 w-full text-center bg-amber-900 text-[6px] text-white py-0.5">BAR</div>
-                                <div className="w-full h-1 bg-amber-500/30 absolute top-0"></div>
+                    <div className="iso-scene">
+                        <div className="iso-floor">
+                            {/* ТРОТУАР (ОЧЕРЕДЬ) */}
+                            <div className="iso-sidewalk">
+                                {Array.from({length: queue}).map((_, i) => (
+                                    <QueueGuest key={i} index={i} />
+                                ))}
                             </div>
-                        )}
 
-                        {/* ДИВАНЫ (Низкие блоки) */}
-                        {hasSofa && (
-                            <div className="stand-up absolute bottom-[20%] left-[10%] w-32 h-10 bg-red-800 border-b-4 border-red-950 rounded-sm shadow-lg z-10 flex gap-1 px-1">
-                                <div className="w-8 h-full bg-red-700/50"></div>
-                                <div className="w-8 h-full bg-red-700/50"></div>
-                                <div className="w-8 h-full bg-red-700/50"></div>
-                            </div>
-                        )}
+                            {/* ПОЛ */}
+                            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,#000_25%,transparent_25%,transparent_75%,#000_75%,#000),linear-gradient(45deg,#000_25%,transparent_25%,transparent_75%,#000_75%,#000)] bg-[length:20px_20px] bg-[position:0_0,10px_10px]"></div>
 
-                        {/* DJ ПУЛЬТ (Круглый) */}
-                        {hasDJ && (
-                            <div className="stand-up absolute top-[15%] left-[15%] w-14 h-14 bg-gray-700 rounded-full border-b-4 border-gray-900 shadow-xl z-10 flex items-center justify-center animate-pulse">
-                                <div className="w-10 h-10 border-2 border-green-500 rounded-full bg-black"></div>
-                            </div>
-                        )}
-                        
-                        {/* VIP (Стеклянная коробка) */}
-                        {hasVIP && (
-                            <div className="stand-up absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-yellow-900/40 border-2 border-yellow-500 shadow-2xl z-0 backdrop-blur-sm">
-                                <div className="absolute top-0 w-full text-center text-[8px] font-bold text-yellow-400 bg-black/50">VIP</div>
-                            </div>
-                        )}
+                            {/* === ОБЪЕКТЫ === */}
 
-                        {/* === ГОСТИ === */}
-                        {hall.map((guest, i) => {
-                            if (!guest) return null;
-                            // Сортировка по глубине (чем ниже Y, тем выше z-index)
-                            // Мы используем фиксированные слоты, чтобы они не накладывались некрасиво
-                            const row = Math.floor(i / 5); 
-                            const col = i % 5;
-                            
-                            // Размещаем их "шахматкой" или сеткой
-                            const top = 30 + (row * 15) + '%'; 
-                            const left = 15 + (col * 15) + '%';
-                            const zIndex = 50 + row; // Те кто ниже, перекрывают тех кто выше
-
-                            return (
-                                <div key={guest.id || i} className="pixel-guest animate-bounce-pixel"
-                                     style={{ top: top, left: left, zIndex: zIndex, animationDelay: `${col * 0.1}s` }}>
-                                    <div className="pixel-head"></div>
-                                    <div className="pixel-body"></div>
-                                    <div className="pixel-shadow"></div>
+                            {/* БАР (Коричневый стол) */}
+                            {hasBar && (
+                                <div className="stand-up" style={{ top: '10%', right: '10%' }}>
+                                    <div className="w-20 h-12 bg-[#78350f] border-b-4 border-[#451a03] shadow-lg relative">
+                                        <div className="absolute -top-4 w-full h-1 bg-[#b45309]"></div>
+                                    </div>
                                 </div>
-                            );
-                        })}
-                    </div>
-                    
-                    {/* Подпись снизу, вне 3D сцены */}
-                    <div className="absolute bottom-6 text-center w-full pointer-events-none">
-                        <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 drop-shadow-sm uppercase">
-                            BetBoom Club
-                        </h2>
+                            )}
+
+                            {/* ДИВАНЫ (Красные) */}
+                            {hasSofa && (
+                                <div className="stand-up" style={{ bottom: '20%', left: '10%' }}>
+                                    <div className="w-24 h-8 bg-[#991b1b] rounded-sm relative shadow-md">
+                                        <div className="absolute -top-3 w-full h-3 bg-[#7f1d1d] rounded-t-sm"></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ВЕНТИЛЯТОР (Крутится) */}
+                            {hasFan && (
+                                <div className="stand-up" style={{ top: '5%', left: '40%' }}>
+                                    <div className="w-2 h-16 bg-gray-600 relative">
+                                        <div className="absolute -top-4 -left-3 w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center">
+                                             <div className="fan-blades"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* VIP (Золотая зона) */}
+                            {hasVIP && (
+                                <div className="stand-up" style={{ top: '40%', right: '40%' }}>
+                                    <div className="w-16 h-16 border-4 border-yellow-500 bg-yellow-900/30 backdrop-blur-sm relative"></div>
+                                </div>
+                            )}
+
+                            {/* === ПЕРСОНАЛ === */}
+                            {hasManager && <WanderingGuest type="staff" key="manager" />}
+                            {hasSecurity && <WanderingGuest type="security" key="security" />}
+
+                            {/* === ГОСТИ === */}
+                            {hall.map((guest, i) => {
+                                if (!guest) return null;
+                                return <WanderingGuest key={guest.id || i} />;
+                            })}
+                        </div>
                     </div>
                 </div>
             );
@@ -464,6 +566,22 @@
             // Расчеты
             const calcStats = useCallback((ups) => {
                 const check = (id) => UPGRADES_CONFIG[id]?.effect(ups[id]) || 0;
+
+                // Если включен режим просмотра, показываем ТОЛЬКО визуализатор
+            if (viewMode === 'visual') {
+                return (
+                    <ClubVisualizer 
+                        upgrades={state.upgrades} 
+                        hall={state.hall} 
+                        queue={state.queue}
+                        onClose={() => setViewMode('manager')} 
+                    />
+                );
+            }
+
+            // Обычный интерфейс игры
+            return (
+
                 return {
                     maxQueue: 5 + check('queue_barrier') + check('queue_sign') + check('queue_shade'),
                     maxHall: 5 + check('club_expand') + check('club_floor2'),
@@ -770,8 +888,10 @@
                                         {formatTime(state.gameTime)} <Icons.Clock size={16} />
                                     </div>
                                 </div>
-                                <button onClick={() => setSettingsOpen(true)} className="p-2 bg-gray-700 rounded-lg text-gray-300 active:scale-90 transition-transform">
-                                    <Icons.Settings size={20} />
+                                        <button onClick={() => setViewMode('visual')} 
+                                        className="p-2 bg-yellow-600 rounded-lg text-white active:scale-90 transition-transform shadow-lg border border-yellow-500">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
                                 </button>
                             </div>
                         </div>
@@ -909,6 +1029,7 @@
     </script>
 </body>
 </html>
+
 
 
 
