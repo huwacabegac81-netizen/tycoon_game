@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>BetBoom Tycoon</title>
-    
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
@@ -324,6 +325,17 @@
                     betAmount: 1 + check('club_vip') + check('marketing_sponsor') + check('staff_vip_manager') + check('bet_facecontrol') + check('bet_bar') + check('bet_snacks') + check('bet_drinks'),
                     spawnRate: 1 + check('marketing_ads') + check('marketing_ambas') + check('marketing_smm') + check('marketing_tv') + check('marketing_flyers') + check('marketing_spam')
                 };
+            }, []);
+
+                        useEffect(() => {
+                if (window.Telegram?.WebApp) {
+                    const tg = window.Telegram.WebApp;
+                    tg.ready();
+                    tg.expand(); // Раскрыть на весь экран
+                    // Красим шапку телеграма в цвет твоего фона
+                    tg.setHeaderColor('#111827'); 
+                    tg.setBackgroundColor('#111827');
+                }
             }, []);
 
             // --- ЗАГРУЗКА И СОХРАНЕНИЕ (БЕЗ AFK) ---
@@ -732,6 +744,7 @@
     </script>
 </body>
 </html>
+
 
 
 
